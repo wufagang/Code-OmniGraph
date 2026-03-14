@@ -1,0 +1,5 @@
+{
+  "name": "Genesis Probe",
+  "description": "Go-based MCP server for Project Genesis, providing local context and file scanning.",
+  "requestFramePermissions": []
+}

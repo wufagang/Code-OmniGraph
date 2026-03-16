@@ -13,10 +13,10 @@ Code-OmniGraph (全知代码图谱) is a multi-dimensional Java code knowledge g
 
 ## Directory Structure
 
-- `cagr-collector/`: Data collection module (Static Analyzer, Dynamic Observer, Schema Inspector, Context Scraper)
-- `cagr-processor/`: Data cleaning and graph modeling (Neo4j Builder, Qdrant Worker, Celery Tasks)
+- `cagr-collector/`: 数据采集模块（静态分析器、动态观察器、模式检查器、上下文抓取器）
+- `cagr-processor/`: 数据清洗和图建模（Neo4j Builder、Qdrant Worker、Celery Tasks）
 - `cagr-common/`: Common models (Pydantic schemas)
-- `cagr-server/`: RAG API interface (FastAPI, LangChain Prompt Engine)
+- `cagr-server/`: RAG API 接口（FastAPI、LangChain 提示引擎）
 - `tests/`: Pytest test cases
 
 

@@ -12,7 +12,6 @@ func StartServer() {
 	s := server.NewMCPServer(
 		"Genesis Probe",
 		"1.0.0",
-		server.WithToolCapabilities(true),
 	)
 
 	// Tool: ls_project_tree

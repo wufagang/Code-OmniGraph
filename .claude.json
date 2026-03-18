@@ -1,0 +1,8 @@
+{
+  "mcpServers": {
+    "genesis-probe": {
+      "command": "/Users/wufagang/project/aiopen/code-omnigraph/client/mcp/bin/genesis-probe",
+      "args": ["run", "--mcp"]
+    }
+  }
+}

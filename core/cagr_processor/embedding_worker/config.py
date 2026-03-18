@@ -1,6 +1,7 @@
 from typing import Optional, Dict, Any
 from dataclasses import dataclass, field
 import os
+from pathlib import Path
 
 
 @dataclass
@@ -57,6 +58,9 @@ class VectorDBConfig:
     @classmethod
     def from_env(cls) -> "VectorDBConfig":
         """从环境变量加载配置"""
+        # 尝试加载 .env 文件（如果存在）
+        cls._load_env_file()
+
         db_type = os.getenv("VECTOR_DB_TYPE", "qdrant").lower()
 
         if db_type == "qdrant":
@@ -88,6 +92,33 @@ class VectorDBConfig:
 
         else:
             raise ValueError(f"Unsupported vector database type: {db_type}")
+
+    @staticmethod
+    def _load_env_file():
+        """加载 .env 文件"""
+        # 尝试在当前目录和父目录查找 .env 文件
+        current_dir = Path.cwd()
+        possible_paths = [
+            current_dir / ".env",
+            current_dir.parent / ".env",
+            current_dir / "core" / ".env",
+            Path(__file__).parent.parent.parent / ".env",
+        ]
+
+        # 查找第一个存在的 .env 文件
+        env_file = None
+        for path in possible_paths:
+            if path.exists():
+                env_file = path
+                break
+
+        if env_file:
+            try:
+                from dotenv import load_dotenv
+                load_dotenv(env_file)
+            except ImportError:
+                # 如果没有安装 python-dotenv，则跳过
+                pass
 
     def validate(self) -> None:
         """验证配置有效性"""

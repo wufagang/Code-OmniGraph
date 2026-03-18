@@ -10,3 +10,4 @@ coverage/
 /core/.claude/
 /venv/
 .idea/
+/core/.env

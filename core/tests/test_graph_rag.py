@@ -9,8 +9,8 @@ from cagr_server.prompt_engine.graph_rag import GraphRAGPipeline
 
 @patch('cagr_server.prompt_engine.graph_rag.QdrantClient')
 @patch('cagr_server.prompt_engine.graph_rag.GraphDatabase')
-@patch('cagr_server.prompt_engine.graph_rag.ChatOpenAI')
-def test_graph_rag_pipeline(mock_llm, mock_neo4j, mock_qdrant):
+@patch('cagr_server.prompt_engine.graph_rag.openai')
+def test_graph_rag_pipeline(mock_openai, mock_neo4j, mock_qdrant):
     # Mock Qdrant semantic search
     mock_qdrant_instance = mock_qdrant.return_value
     mock_qdrant_instance.search.return_value = [
@@ -24,8 +24,12 @@ def test_graph_rag_pipeline(mock_llm, mock_neo4j, mock_qdrant):
     ]
     
     # Mock LLM response
-    mock_llm_instance = mock_llm.return_value
-    mock_llm_instance.predict.return_value = "The getUser method queries the users table."
+    mock_openai_client = MagicMock()
+    mock_openai.OpenAI.return_value = mock_openai_client
+    mock_response = MagicMock()
+    mock_response.choices = [MagicMock()]
+    mock_response.choices[0].message.content = "The getUser method queries the users table."
+    mock_openai_client.chat.completions.create.return_value = mock_response
     
     pipeline = GraphRAGPipeline(
         qdrant_url="http://localhost:6333",
@@ -40,4 +44,4 @@ def test_graph_rag_pipeline(mock_llm, mock_neo4j, mock_qdrant):
     assert "getUser method queries the users table" in answer
     mock_qdrant_instance.search.assert_called_once()
     mock_neo4j_session.run.assert_called_once()
-    mock_llm_instance.predict.assert_called_once()
+    mock_openai_client.chat.completions.create.assert_called_once()

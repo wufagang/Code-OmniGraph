@@ -1,14 +1,14 @@
-import unittest
+import pytest
 from dataclasses import dataclass
 
-from embedding_worker.models import (
+from cagr_processor.embedding_worker.models import (
     VectorData, CollectionInfo, SearchResult, SearchParams,
     HybridSearchParams, CollectionLimit, DistanceMetric, IndexType,
     InsertParams, DeleteParams, QueryParams
 )
 
 
-class TestModels(unittest.TestCase):
+class TestModels:
     """测试数据模型"""
 
     def test_vector_data(self):
@@ -19,17 +19,17 @@ class TestModels(unittest.TestCase):
             vector=[0.1, 0.2, 0.3],
             payload={"key": "value"}
         )
-        self.assertEqual(data.id, "test_id")
-        self.assertEqual(data.vector, [0.1, 0.2, 0.3])
-        self.assertEqual(data.payload, {"key": "value"})
+        assert data.id == "test_id"
+        assert data.vector == [0.1, 0.2, 0.3]
+        assert data.payload == {"key": "value"}
 
         # 测试可选payload
         data_no_payload = VectorData(id="1", vector=[1.0, 2.0])
-        self.assertIsNone(data_no_payload.payload)
+        assert data_no_payload.payload is None
 
         # 测试数字ID
         data_numeric = VectorData(id=123, vector=[0.1, 0.2])
-        self.assertEqual(data_numeric.id, 123)
+        assert data_numeric.id == 123
 
     def test_collection_info(self):
         """测试CollectionInfo模型"""
@@ -41,12 +41,12 @@ class TestModels(unittest.TestCase):
             index_type=IndexType.HNSW,
             description="Test collection"
         )
-        self.assertEqual(info.name, "test_collection")
-        self.assertEqual(info.vector_size, 512)
-        self.assertEqual(info.distance_metric, DistanceMetric.COSINE)
-        self.assertEqual(info.vector_count, 1000)
-        self.assertEqual(info.index_type, IndexType.HNSW)
-        self.assertEqual(info.description, "Test collection")
+        assert info.name == "test_collection"
+        assert info.vector_size == 512
+        assert info.distance_metric == DistanceMetric.COSINE
+        assert info.vector_count == 1000
+        assert info.index_type == IndexType.HNSW
+        assert info.description == "Test collection"
 
     def test_search_result(self):
         """测试SearchResult模型"""
@@ -56,15 +56,15 @@ class TestModels(unittest.TestCase):
             vector=[0.1, 0.2, 0.3],
             payload={"match": True}
         )
-        self.assertEqual(result.id, "result1")
-        self.assertAlmostEqual(result.score, 0.95)
-        self.assertEqual(result.vector, [0.1, 0.2, 0.3])
-        self.assertEqual(result.payload, {"match": True})
+        assert result.id == "result1"
+        assert result.score == pytest.approx(0.95)
+        assert result.vector == [0.1, 0.2, 0.3]
+        assert result.payload == {"match": True}
 
         # 测试可选字段
         result_min = SearchResult(id="2", score=0.8)
-        self.assertIsNone(result_min.vector)
-        self.assertIsNone(result_min.payload)
+        assert result_min.vector is None
+        assert result_min.payload is None
 
     def test_search_params(self):
         """测试SearchParams模型"""
@@ -78,24 +78,24 @@ class TestModels(unittest.TestCase):
             with_vectors=True,
             offset=20
         )
-        self.assertEqual(params.collection_name, "my_collection")
-        self.assertEqual(params.query_vector, [0.1, 0.2, 0.3])
-        self.assertEqual(params.limit, 10)
-        self.assertEqual(params.score_threshold, 0.5)
-        self.assertEqual(params.filter, {"category": "test"})
-        self.assertTrue(params.with_vectors)
-        self.assertEqual(params.offset, 20)
+        assert params.collection_name == "my_collection"
+        assert params.query_vector == [0.1, 0.2, 0.3]
+        assert params.limit == 10
+        assert params.score_threshold == 0.5
+        assert params.filter == {"category": "test"}
+        assert params.with_vectors is True
+        assert params.offset == 20
 
         # 测试默认值
         params_default = SearchParams(
             collection_name="test",
             query_vector=[0.1, 0.2]
         )
-        self.assertEqual(params_default.limit, 10)
-        self.assertIsNone(params_default.score_threshold)
-        self.assertIsNone(params_default.filter)
-        self.assertFalse(params_default.with_vectors)
-        self.assertIsNone(params_default.offset)
+        assert params_default.limit == 10
+        assert params_default.score_threshold is None
+        assert params_default.filter is None
+        assert params_default.with_vectors is False
+        assert params_default.offset is None
 
     def test_hybrid_search_params(self):
         """测试HybridSearchParams模型"""
@@ -109,24 +109,24 @@ class TestModels(unittest.TestCase):
             score_threshold=0.6,
             filter={"lang": "en"}
         )
-        self.assertEqual(params.collection_name, "hybrid_collection")
-        self.assertEqual(params.dense_vector, [0.1, 0.2, 0.3])
-        self.assertEqual(params.sparse_vector, {"word1": 1.0, "word2": 0.5})
-        self.assertEqual(params.text_query, "example query")
-        self.assertEqual(params.limit, 20)
-        self.assertEqual(params.alpha, 0.7)
-        self.assertEqual(params.score_threshold, 0.6)
-        self.assertEqual(params.filter, {"lang": "en"})
+        assert params.collection_name == "hybrid_collection"
+        assert params.dense_vector == [0.1, 0.2, 0.3]
+        assert params.sparse_vector == {"word1": 1.0, "word2": 0.5}
+        assert params.text_query == "example query"
+        assert params.limit == 20
+        assert params.alpha == 0.7
+        assert params.score_threshold == 0.6
+        assert params.filter == {"lang": "en"}
 
         # 测试默认值
         params_default = HybridSearchParams(
             collection_name="test",
             dense_vector=[0.1, 0.2]
         )
-        self.assertEqual(params_default.limit, 10)
-        self.assertEqual(params_default.alpha, 0.5)
-        self.assertIsNone(params_default.sparse_vector)
-        self.assertIsNone(params_default.text_query)
+        assert params_default.limit == 10
+        assert params_default.alpha == 0.5
+        assert params_default.sparse_vector is None
+        assert params_default.text_query is None
 
     def test_collection_limit(self):
         """测试CollectionLimit模型"""
@@ -137,11 +137,11 @@ class TestModels(unittest.TestCase):
             current_collections=50,
             current_vectors=500000
         )
-        self.assertEqual(limit.max_collections, 100)
-        self.assertEqual(limit.max_vectors_per_collection, 1000000)
-        self.assertEqual(limit.max_vector_size, 4096)
-        self.assertEqual(limit.current_collections, 50)
-        self.assertEqual(limit.current_vectors, 500000)
+        assert limit.max_collections == 100
+        assert limit.max_vectors_per_collection == 1000000
+        assert limit.max_vector_size == 4096
+        assert limit.current_collections == 50
+        assert limit.current_vectors == 500000
 
     def test_insert_params(self):
         """测试InsertParams模型"""
@@ -154,16 +154,16 @@ class TestModels(unittest.TestCase):
             data=data,
             batch_size=100
         )
-        self.assertEqual(params.collection_name, "insert_test")
-        self.assertEqual(params.data, data)
-        self.assertEqual(params.batch_size, 100)
+        assert params.collection_name == "insert_test"
+        assert params.data == data
+        assert params.batch_size == 100
 
         # 测试可选batch_size
         params_no_batch = InsertParams(
             collection_name="test",
             data=data
         )
-        self.assertIsNone(params_no_batch.batch_size)
+        assert params_no_batch.batch_size is None
 
     def test_delete_params(self):
         """测试DeleteParams模型"""
@@ -172,17 +172,17 @@ class TestModels(unittest.TestCase):
             collection_name="delete_test",
             ids=["id1", "id2", "id3"]
         )
-        self.assertEqual(params_ids.collection_name, "delete_test")
-        self.assertEqual(params_ids.ids, ["id1", "id2", "id3"])
-        self.assertIsNone(params_ids.filter)
+        assert params_ids.collection_name == "delete_test"
+        assert params_ids.ids == ["id1", "id2", "id3"]
+        assert params_ids.filter is None
 
         # 使用过滤器删除
         params_filter = DeleteParams(
             collection_name="delete_test",
             filter={"category": "old"}
         )
-        self.assertEqual(params_filter.filter, {"category": "old"})
-        self.assertIsNone(params_filter.ids)
+        assert params_filter.filter == {"category": "old"}
+        assert params_filter.ids is None
 
     def test_query_params(self):
         """测试QueryParams模型"""
@@ -193,34 +193,30 @@ class TestModels(unittest.TestCase):
             offset=100,
             with_vectors=True
         )
-        self.assertEqual(params.collection_name, "query_test")
-        self.assertEqual(params.filter, {"status": "active"})
-        self.assertEqual(params.limit, 50)
-        self.assertEqual(params.offset, 100)
-        self.assertTrue(params.with_vectors)
+        assert params.collection_name == "query_test"
+        assert params.filter == {"status": "active"}
+        assert params.limit == 50
+        assert params.offset == 100
+        assert params.with_vectors is True
 
         # 测试默认值
         params_default = QueryParams(collection_name="test")
-        self.assertIsNone(params_default.filter)
-        self.assertIsNone(params_default.limit)
-        self.assertIsNone(params_default.offset)
-        self.assertFalse(params_default.with_vectors)
+        assert params_default.filter is None
+        assert params_default.limit is None
+        assert params_default.offset is None
+        assert params_default.with_vectors is False
 
     def test_distance_metric_enum(self):
         """测试距离度量枚举"""
-        self.assertEqual(DistanceMetric.COSINE, "cosine")
-        self.assertEqual(DistanceMetric.EUCLIDEAN, "euclidean")
-        self.assertEqual(DistanceMetric.DOT_PRODUCT, "dot_product")
-        self.assertEqual(DistanceMetric.HAMMING, "hamming")
+        assert DistanceMetric.COSINE == "cosine"
+        assert DistanceMetric.EUCLIDEAN == "euclidean"
+        assert DistanceMetric.DOT_PRODUCT == "dot_product"
+        assert DistanceMetric.HAMMING == "hamming"
 
     def test_index_type_enum(self):
         """测试索引类型枚举"""
-        self.assertEqual(IndexType.FLAT, "flat")
-        self.assertEqual(IndexType.IVF_FLAT, "ivf_flat")
-        self.assertEqual(IndexType.IVF_SQ8, "ivf_sq8")
-        self.assertEqual(IndexType.IVF_PQ, "ivf_pq")
-        self.assertEqual(IndexType.HNSW, "hnsw")
-
-
-if __name__ == "__main__":
-    unittest.main()
+        assert IndexType.FLAT == "flat"
+        assert IndexType.IVF_FLAT == "ivf_flat"
+        assert IndexType.IVF_SQ8 == "ivf_sq8"
+        assert IndexType.IVF_PQ == "ivf_pq"
+        assert IndexType.HNSW == "hnsw"

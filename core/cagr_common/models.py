@@ -47,3 +47,12 @@ class MethodOperatesTable(BaseModel):
     method_id: str
     table_name: str
     action: str  # READ or WRITE
+
+class File(BaseModel):
+    path: str
+    name: str
+    language: Optional[str] = None
+    content: Optional[str] = None
+    size: Optional[int] = None
+    methods: List[Method] = Field(default_factory=list)
+    classes: List[Class] = Field(default_factory=list)

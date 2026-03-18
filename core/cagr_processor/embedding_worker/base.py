@@ -10,10 +10,10 @@ from .models import (
     HybridSearchParams, CollectionLimit, DistanceMetric, IndexType,
     InsertParams, DeleteParams, QueryParams
 )
-from .exceptions import (
-    VectorDBException, ConnectionException, CollectionException,
-    CollectionNotFoundException, CollectionAlreadyExistsException,
-    InsertException, SearchException, DeleteException, QueryException
+from cagr_common.exceptions import (
+    VectorDBException, VectorConnectionException, VectorCollectionException,
+    VectorCollectionNotFoundException, VectorCollectionAlreadyExistsException,
+    VectorInsertException, VectorSearchException, VectorDeleteException, VectorQueryException
 )
 
 
@@ -26,7 +26,7 @@ def retry_on_failure(max_attempts: int = 3, delay: float = 1.0):
             for attempt in range(max_attempts):
                 try:
                     return func(self, *args, **kwargs)
-                except ConnectionException as e:
+                except VectorConnectionException as e:
                     last_exception = e
                     if attempt < max_attempts - 1:
                         if hasattr(self, 'logger') and self.logger:
@@ -59,7 +59,7 @@ class BaseVectorDatabase(VectorDatabase, ABC):
     def _validate_connection(self):
         """验证连接状态"""
         if not self._connection:
-            raise ConnectionException("Database connection is not established")
+            raise VectorConnectionException("Database connection is not established")
 
     def _validate_collection_name(self, collection_name: str):
         """验证集合名称"""
@@ -167,7 +167,7 @@ class BaseVectorDatabase(VectorDatabase, ABC):
         self._validate_vector_data(data)
 
         if not self.has_collection(collection_name):
-            raise CollectionNotFoundException(f"Collection '{collection_name}' not found", collection_name)
+            raise VectorCollectionNotFoundException(f"Collection '{collection_name}' not found", collection_name)
 
         # 使用配置的批量大小或默认值
         if batch_size is None:
@@ -194,7 +194,7 @@ class BaseVectorDatabase(VectorDatabase, ABC):
         self._log_operation("search", params.collection_name, limit=params.limit)
 
         if not self.has_collection(params.collection_name):
-            raise CollectionNotFoundException(f"Collection '{params.collection_name}' not found",
+            raise VectorCollectionNotFoundException(f"Collection '{params.collection_name}' not found",
                                             params.collection_name)
 
         return self._search_impl(params)
@@ -213,7 +213,7 @@ class BaseVectorDatabase(VectorDatabase, ABC):
             raise ValueError("Either ids or filter must be provided")
 
         if not self.has_collection(collection_name):
-            raise CollectionNotFoundException(f"Collection '{collection_name}' not found", collection_name)
+            raise VectorCollectionNotFoundException(f"Collection '{collection_name}' not found", collection_name)
 
         self._log_operation("delete", collection_name, ids_count=len(ids) if ids else 0)
         return self._delete_impl(collection_name, ids, filter)

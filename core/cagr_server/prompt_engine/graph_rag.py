@@ -1,7 +1,6 @@
 from qdrant_client import QdrantClient
-from langchain.chat_models import ChatOpenAI
-from langchain.prompts import PromptTemplate
 from neo4j import GraphDatabase
+import openai
 import os
 import sys
 
@@ -11,21 +10,17 @@ class GraphRAGPipeline:
     def __init__(self, qdrant_url: str, neo4j_uri: str, neo4j_user: str, neo4j_password: str, openai_api_key: str):
         self.qdrant_client = QdrantClient(url=qdrant_url)
         self.neo4j_driver = GraphDatabase.driver(neo4j_uri, auth=(neo4j_user, neo4j_password))
-        self.llm = ChatOpenAI(openai_api_key=openai_api_key, model_name="gpt-4o")
-        
-        self.prompt_template = PromptTemplate(
-            input_variables=["query", "context"],
-            template="""
-            You are an expert Java system architect. Answer the user's query based on the following code graph context.
-            
-            Context:
-            {context}
-            
-            Query: {query}
-            
-            Answer:
-            """
-        )
+        self.openai_client = openai.OpenAI(api_key=openai_api_key)
+
+        self.prompt_template = """You are an expert Java system architect. Answer the user's query based on the following code graph context.
+
+Context:
+{context}
+
+Query: {query}
+
+Answer:
+"""
 
     def retrieve_method_id_from_vector(self, query: str) -> str:
         # In a real scenario, embed the query using an embedding model
@@ -67,15 +62,18 @@ class GraphRAGPipeline:
     def query(self, user_query: str) -> str:
         # Step 1: Semantic Search
         method_id = self.retrieve_method_id_from_vector(user_query)
-        
+
         if not method_id:
             return "No relevant code found."
-            
+
         # Step 2: Graph Traversal
         graph_context = self.retrieve_graph_context(method_id)
-        
+
         # Step 3: LLM Generation
         prompt = self.prompt_template.format(query=user_query, context=graph_context)
-        response = self.llm.predict(prompt)
-        
-        return response
+        response = self.openai_client.chat.completions.create(
+            model="gpt-4o",
+            messages=[{"role": "user", "content": prompt}]
+        )
+
+        return response.choices[0].message.content

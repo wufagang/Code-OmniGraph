@@ -13,9 +13,9 @@ from .models import (
     GraphStats, SubGraph, NodeLabel, RelType, RiskLevel
 )
 from .config import GraphDBConfig
-from .exceptions import (
-    GraphDBException, ConnectionException, TransactionException,
-    NodeException, NodeNotFoundException, RelationshipException, QueryException
+from cagr_common.exceptions import (
+    GraphDBException, GraphConnectionException, GraphTransactionException,
+    GraphNodeException, GraphNodeNotFoundException, GraphRelationshipException, GraphQueryException
 )
 
 

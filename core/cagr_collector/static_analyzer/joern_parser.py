@@ -23,7 +23,10 @@ class JoernParser:
         methods = []
         try:
             # Assume Joern script outputs JSON lines
-            for line in result.stdout.strip().split('\n'):
+            stdout = result.stdout
+            if isinstance(stdout, bytes):
+                stdout = stdout.decode('utf-8')
+            for line in stdout.strip().split('\n'):
                 if line:
                     data = json.loads(line)
                     methods.append(Method(
@@ -35,7 +38,7 @@ class JoernParser:
                     ))
         except Exception as e:
             print(f"Error parsing Joern output: {e}")
-            
+
         return methods
 
     def parse_calls(self) -> List[MethodCall]:
@@ -47,7 +50,10 @@ class JoernParser:
         
         calls = []
         try:
-            for line in result.stdout.strip().split('\n'):
+            stdout = result.stdout
+            if isinstance(stdout, bytes):
+                stdout = stdout.decode('utf-8')
+            for line in stdout.strip().split('\n'):
                 if line:
                     data = json.loads(line)
                     calls.append(MethodCall(
@@ -56,5 +62,5 @@ class JoernParser:
                     ))
         except Exception as e:
             print(f"Error parsing Joern output: {e}")
-            
+
         return calls

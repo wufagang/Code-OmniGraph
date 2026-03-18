@@ -10,7 +10,9 @@ from cagr_collector.context_scraper.git_scraper import GitScraper
 
 @patch('cagr_collector.dynamic_observer.skywalking_client.requests.post')
 def test_skywalking_client(mock_post):
-    mock_post.return_value.json.return_value = {
+    mock_response = MagicMock()
+    mock_response.status_code = 200
+    mock_response.json.return_value = {
         "data": {
             "queryBasicTraces": {
                 "traces": [
@@ -19,10 +21,11 @@ def test_skywalking_client(mock_post):
             }
         }
     }
-    
+    mock_post.return_value = mock_response
+
     client = SkyWalkingClient(base_url="http://localhost:12800")
     traces = client.get_traces("service_a")
-    
+
     assert len(traces) == 1
     assert traces[0]["duration"] == 120
 

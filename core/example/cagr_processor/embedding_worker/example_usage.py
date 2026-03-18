@@ -2,7 +2,7 @@
 向量数据库模块使用示例
 """
 
-from embedding_worker import (
+from cagr_processor.embedding_worker import (
     create_vector_db,
     VectorDBConfig,
     QdrantConfig,
@@ -203,12 +203,12 @@ def example_error_handling():
     """错误处理示例"""
     print("\n=== 错误处理示例 ===")
 
-    from embedding_worker import CollectionNotFoundException, ConfigException
+    from cagr_common.exceptions import VectorCollectionNotFoundException, VectorConfigException
 
     try:
         # 尝试连接不存在的服务
         db = create_vector_db("qdrant", host="invalid_host", port=9999)
-    except ConfigException as e:
+    except VectorConfigException as e:
         print(f"配置错误: {e}")
 
     try:
@@ -219,7 +219,7 @@ def example_error_handling():
             collection_name="non_existent_collection",
             query_vector=[0.1] * 100
         ))
-    except CollectionNotFoundException as e:
+    except VectorCollectionNotFoundException as e:
         print(f"集合不存在: {e}")
     except Exception as e:
         print(f"其他错误: {e}")

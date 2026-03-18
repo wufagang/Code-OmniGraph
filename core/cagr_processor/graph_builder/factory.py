@@ -6,7 +6,7 @@ import logging
 from .interfaces import GraphDatabase
 from .config import GraphDBConfig, Neo4jConfig
 from .impl.neo4j_impl import Neo4jDatabase
-from .exceptions import ConfigException
+from cagr_common.exceptions import GraphConfigException
 
 
 class GraphDBFactory:
@@ -46,7 +46,7 @@ class GraphDBFactory:
             # 检查是否支持该类型
             if db_type not in cls._registry:
                 supported_types = list(cls._registry.keys())
-                raise ConfigException(
+                raise GraphConfigException(
                     f"Unsupported graph database type: {db_type}. "
                     f"Supported types: {supported_types}"
                 )
@@ -66,15 +66,15 @@ class GraphDBFactory:
                         "Please install it with: pip install neo4j"
                     )
                 else:
-                    raise ConfigException(f"Failed to import required library: {e}")
+                    raise GraphConfigException(f"Failed to import required library: {e}")
 
             logging.info(f"Successfully created {db_type} graph database instance")
             return instance
 
-        except ConfigException:
+        except GraphConfigException:
             raise
         except Exception as e:
-            raise ConfigException(f"Failed to create graph database instance: {e}")
+            raise GraphConfigException(f"Failed to create graph database instance: {e}")
 
     @classmethod
     def create_from_config_dict(cls, config_dict: dict) -> GraphDatabase:

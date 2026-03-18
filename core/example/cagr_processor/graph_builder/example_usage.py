@@ -6,16 +6,17 @@
 
 import os
 import sys
+import logging
 
-# 添加项目路径
-sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..')))
+# 添加项目路径 - 从example目录到core根目录
+sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..', '..')))
 
-from core.cagr_processor.graph_builder import create_graph_db, GraphDBConfig, Neo4jConfig
-from core.cagr_processor.graph_builder.models import (
+from cagr_processor.graph_builder import create_graph_db, GraphDBConfig, Neo4jConfig
+from cagr_processor.graph_builder.models import (
     ProjectNode, FileNode, ClassNode, FunctionNode, VariableNode,
     CallRelationship, TaintFlowRelationship, RiskLevel
 )
-from core.cagr_collector.static_analyzer.tree_sitter_parser import TreeSitterParser
+from cagr_collector.static_analyzer.tree_sitter_parser import TreeSitterParser
 
 
 def build_code_graph(project_path: str):

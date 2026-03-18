@@ -1,11 +1,11 @@
-import unittest
+import pytest
 from unittest.mock import Mock, patch
 
-from embedding_worker.base import BaseVectorDatabase, retry_on_failure
-from embedding_worker.models import VectorData, DistanceMetric, IndexType
-from embedding_worker.exceptions import (
-    ConnectionException, CollectionNotFoundException,
-    CollectionAlreadyExistsException, InsertException
+from cagr_processor.embedding_worker.base import BaseVectorDatabase, retry_on_failure
+from cagr_processor.embedding_worker.models import VectorData, DistanceMetric, IndexType
+from cagr_common.exceptions import (
+    VectorConnectionException, VectorCollectionNotFoundException,
+    VectorCollectionAlreadyExistsException, VectorInsertException
 )
 
 
@@ -41,7 +41,7 @@ class MockBaseVectorDatabase(BaseVectorDatabase):
         return ["collection1", "collection2"]
 
     def get_collection_info(self, collection_name):
-        from embedding_worker.models import CollectionInfo
+        from cagr_processor.embedding_worker.models import CollectionInfo
         return CollectionInfo(
             name=collection_name,
             vector_size=768,
@@ -58,14 +58,14 @@ class MockBaseVectorDatabase(BaseVectorDatabase):
         return []
 
     def check_collection_limit(self, collection_name):
-        from embedding_worker.models import CollectionLimit
+        from cagr_processor.embedding_worker.models import CollectionLimit
         return CollectionLimit()
 
     def close(self):
         self._connection = False
 
 
-class TestRetryDecorator(unittest.TestCase):
+class TestRetryDecorator:
     """测试重试装饰器"""
 
     def test_retry_success_on_first_attempt(self):
@@ -79,8 +79,8 @@ class TestRetryDecorator(unittest.TestCase):
             return "success"
 
         result = success_function(None)
-        self.assertEqual(result, "success")
-        self.assertEqual(call_count, 1)
+        assert result == "success"
+        assert call_count == 1
 
     def test_retry_success_after_failures(self):
         """测试失败后重试成功"""
@@ -91,12 +91,12 @@ class TestRetryDecorator(unittest.TestCase):
             nonlocal call_count
             call_count += 1
             if call_count < 3:
-                raise ConnectionException("Connection failed")
+                raise VectorConnectionException("Connection failed")
             return "success"
 
         result = fail_then_succeed(None)
-        self.assertEqual(result, "success")
-        self.assertEqual(call_count, 3)
+        assert result == "success"
+        assert call_count == 3
 
     def test_retry_exhausted(self):
         """测试重试次数耗尽"""
@@ -106,12 +106,12 @@ class TestRetryDecorator(unittest.TestCase):
         def always_fail(self):
             nonlocal call_count
             call_count += 1
-            raise ConnectionException("Always fails")
+            raise VectorConnectionException("Always fails")
 
-        with self.assertRaises(ConnectionException):
+        with pytest.raises(VectorConnectionException):
             always_fail(None)
 
-        self.assertEqual(call_count, 3)
+        assert call_count == 3
 
     def test_retry_non_connection_exception(self):
         """测试非连接异常不重试"""
@@ -123,16 +123,16 @@ class TestRetryDecorator(unittest.TestCase):
             call_count += 1
             raise ValueError("Other error")
 
-        with self.assertRaises(ValueError):
+        with pytest.raises(ValueError):
             fail_with_other_exception(None)
 
-        self.assertEqual(call_count, 1)  # 不重试
+        assert call_count == 1  # 不重试
 
 
-class TestBaseVectorDatabase(unittest.TestCase):
+class TestBaseVectorDatabase:
     """测试基础向量数据库类"""
 
-    def setUp(self):
+    def setup_method(self):
         """测试前准备"""
         self.config = Mock()
         self.config.enable_logging = True
@@ -143,7 +143,7 @@ class TestBaseVectorDatabase(unittest.TestCase):
         self.db._validate_connection()  # 应该不抛出异常
 
         self.db._connection = None
-        with self.assertRaises(ConnectionException):
+        with pytest.raises(VectorConnectionException):
             self.db._validate_connection()
 
     def test_validate_collection_name(self):
@@ -153,13 +153,13 @@ class TestBaseVectorDatabase(unittest.TestCase):
         self.db._validate_collection_name("collection_123")
 
         # 无效名称
-        with self.assertRaises(ValueError):
+        with pytest.raises(ValueError):
             self.db._validate_collection_name("")
 
-        with self.assertRaises(ValueError):
+        with pytest.raises(ValueError):
             self.db._validate_collection_name(None)
 
-        with self.assertRaises(ValueError):
+        with pytest.raises(ValueError):
             self.db._validate_collection_name("a" * 256)  # 太长
 
     def test_validate_vector_data(self):
@@ -172,7 +172,7 @@ class TestBaseVectorDatabase(unittest.TestCase):
         self.db._validate_vector_data(valid_data)
 
         # 空数据
-        with self.assertRaises(ValueError):
+        with pytest.raises(ValueError):
             self.db._validate_vector_data([])
 
         # 不一致的向量维度
@@ -180,7 +180,7 @@ class TestBaseVectorDatabase(unittest.TestCase):
             VectorData(id="1", vector=[0.1, 0.2]),
             VectorData(id="2", vector=[0.3, 0.4, 0.5])  # 不同维度
         ]
-        with self.assertRaises(ValueError):
+        with pytest.raises(ValueError):
             self.db._validate_vector_data(inconsistent_data)
 
     def test_batch_operation(self):
@@ -195,12 +195,12 @@ class TestBaseVectorDatabase(unittest.TestCase):
 
         total = self.db._batch_operation(items, batch_size, operation)
 
-        self.assertEqual(total, 10)
-        self.assertEqual(results, list(range(10)))
+        assert total == 10
+        assert results == list(range(10))
 
     def test_update_collection_cache(self):
         """测试更新集合缓存"""
-        from embedding_worker.models import CollectionInfo, DistanceMetric
+        from cagr_processor.embedding_worker.models import CollectionInfo, DistanceMetric
 
         info = CollectionInfo(
             name="test_collection",
@@ -211,11 +211,11 @@ class TestBaseVectorDatabase(unittest.TestCase):
         self.db._update_collection_cache("test_collection", info)
         cached = self.db._get_from_cache("test_collection")
 
-        self.assertEqual(cached, info)
+        assert cached == info
 
     def test_clear_collection_cache(self):
         """测试清除集合缓存"""
-        from embedding_worker.models import CollectionInfo, DistanceMetric
+        from cagr_processor.embedding_worker.models import CollectionInfo, DistanceMetric
 
         info = CollectionInfo(
             name="test_collection",
@@ -227,7 +227,7 @@ class TestBaseVectorDatabase(unittest.TestCase):
         self.db._clear_collection_cache("test_collection")
         cached = self.db._get_from_cache("test_collection")
 
-        self.assertIsNone(cached)
+        assert cached is None
 
     def test_insert_with_batching(self):
         """测试带批次的插入"""
@@ -243,28 +243,28 @@ class TestBaseVectorDatabase(unittest.TestCase):
         # 插入数据
         count = self.db.insert("test_collection", large_data)
 
-        self.assertEqual(count, 25)
+        assert count == 25
 
     def test_insert_collection_not_found(self):
         """测试插入到不存在的集合"""
         data = [VectorData(id="1", vector=[0.1, 0.2])]
 
-        with self.assertRaises(CollectionNotFoundException):
+        with pytest.raises(VectorCollectionNotFoundException):
             self.db.insert("non_existent", data)
 
     def test_delete_validation(self):
         """测试删除验证"""
         # 不提供ids或filter
-        with self.assertRaises(ValueError):
+        with pytest.raises(ValueError):
             self.db.delete("test_collection")
 
         # 提供ids
         result = self.db.delete("test_collection", ids=["1", "2", "3"])
-        self.assertEqual(result, 3)
+        assert result == 3
 
         # 提供filter
         result = self.db.delete("test_collection", filter={"status": "old"})
-        self.assertEqual(result, 1)
+        assert result == 1
 
     def test_retry_on_connection(self):
         """测试连接重试"""
@@ -275,7 +275,7 @@ class TestBaseVectorDatabase(unittest.TestCase):
             nonlocal call_count
             call_count += 1
             if call_count < 3:
-                raise ConnectionException("Connection failed")
+                raise VectorConnectionException("Connection failed")
             return len(data)
 
         # 替换方法
@@ -284,8 +284,8 @@ class TestBaseVectorDatabase(unittest.TestCase):
         data = [VectorData(id="1", vector=[0.1, 0.2])]
         result = self.db.insert("test_collection", data)
 
-        self.assertEqual(result, 1)
-        self.assertEqual(call_count, 3)
+        assert result == 1
+        assert call_count == 3
 
     def test_logging_disabled(self):
         """测试禁用日志"""
@@ -296,7 +296,3 @@ class TestBaseVectorDatabase(unittest.TestCase):
         self.db.insert("test_collection", data)
 
         # 如果日志被正确禁用，应该不会出错
-
-
-if __name__ == "__main__":
-    unittest.main()

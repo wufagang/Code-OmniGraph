@@ -14,6 +14,7 @@ from pathlib import Path
 # 添加项目路径
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..')))
 
+# 修复模块导入路径
 from cagr_common.models import Method, Class, File
 
 # Tree-sitter 相关导入（可选，如果没有安装则使用 mock）

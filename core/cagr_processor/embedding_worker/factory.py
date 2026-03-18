@@ -7,7 +7,7 @@ from .interfaces import VectorDatabase
 from .config import VectorDBConfig, QdrantConfig, MilvusConfig
 from .impl.qdrant_impl import QdrantDatabase
 from .impl.milvus_impl import MilvusDatabase
-from .exceptions import ConfigException
+from cagr_common.exceptions import VectorConfigException
 
 
 class VectorDBFactory:
@@ -36,7 +36,7 @@ class VectorDBFactory:
             向量数据库实例
 
         Raises:
-            ConfigException: 配置错误
+            VectorConfigException: 配置错误
         """
         try:
             # 验证配置
@@ -48,7 +48,7 @@ class VectorDBFactory:
             # 检查是否支持该类型
             if db_type not in cls._registry:
                 supported_types = list(cls._registry.keys())
-                raise ConfigException(
+                raise VectorConfigException(
                     f"Unsupported vector database type: {db_type}. "
                     f"Supported types: {supported_types}"
                 )
@@ -62,25 +62,25 @@ class VectorDBFactory:
             except ImportError as e:
                 # 处理导入错误，提供更有用的错误信息
                 if "qdrant-client" in str(e):
-                    raise ConfigException(
+                    raise VectorConfigException(
                         "Qdrant client library is not installed. "
                         "Please install it with: pip install qdrant-client"
                     )
                 elif "pymilvus" in str(e):
-                    raise ConfigException(
+                    raise VectorConfigException(
                         "Milvus client library is not installed. "
                         "Please install it with: pip install pymilvus"
                     )
                 else:
-                    raise ConfigException(f"Failed to import required library: {e}")
+                    raise VectorConfigException(f"Failed to import required library: {e}")
 
             logging.info(f"Successfully created {db_type} vector database instance")
             return instance
 
-        except ConfigException:
+        except VectorConfigException:
             raise
         except Exception as e:
-            raise ConfigException(f"Failed to create vector database instance: {e}")
+            raise VectorConfigException(f"Failed to create vector database instance: {e}")
 
     @classmethod
     def create_from_config_dict(cls, config_dict: dict) -> VectorDatabase:
@@ -111,12 +111,12 @@ class VectorDBFactory:
                     **{k: v for k, v in config_dict.items() if k not in ["db_type", "milvus_config"]}
                 )
             else:
-                raise ConfigException(f"Unsupported db_type: {db_type}")
+                raise VectorConfigException(f"Unsupported db_type: {db_type}")
 
             return cls.create(config)
 
         except Exception as e:
-            raise ConfigException(f"Failed to create instance from config dict: {e}")
+            raise VectorConfigException(f"Failed to create instance from config dict: {e}")
 
     @classmethod
     def create_from_env(cls) -> VectorDatabase:

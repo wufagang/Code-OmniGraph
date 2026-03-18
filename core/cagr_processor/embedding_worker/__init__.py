@@ -13,11 +13,11 @@ from .models import (
     HybridSearchParams, CollectionLimit, DistanceMetric, IndexType,
     InsertParams, DeleteParams, QueryParams
 )
-from .exceptions import (
-    VectorDBException, ConnectionException, CollectionException,
-    CollectionNotFoundException, CollectionAlreadyExistsException,
-    InsertException, SearchException, DeleteException, QueryException,
-    ConfigException
+from cagr_common.exceptions import (
+    VectorDBException, VectorConnectionException, VectorCollectionException,
+    VectorCollectionNotFoundException, VectorCollectionAlreadyExistsException,
+    VectorInsertException, VectorSearchException, VectorDeleteException, VectorQueryException,
+    VectorConfigException
 )
 
 # 导出实现类（可选）
@@ -47,15 +47,15 @@ __all__ = [
 
     # 异常类
     "VectorDBException",
-    "ConnectionException",
-    "CollectionException",
-    "CollectionNotFoundException",
-    "CollectionAlreadyExistsException",
-    "InsertException",
-    "SearchException",
-    "DeleteException",
-    "QueryException",
-    "ConfigException",
+    "VectorConnectionException",
+    "VectorCollectionException",
+    "VectorCollectionNotFoundException",
+    "VectorCollectionAlreadyExistsException",
+    "VectorInsertException",
+    "VectorSearchException",
+    "VectorDeleteException",
+    "VectorQueryException",
+    "VectorConfigException",
 
     # 实现类
     "QdrantDatabase",

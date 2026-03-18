@@ -17,10 +17,10 @@ from ..models import (
     VectorData, CollectionInfo, SearchResult, SearchParams,
     HybridSearchParams, CollectionLimit, DistanceMetric, IndexType
 )
-from ..exceptions import (
-    ConnectionException, CollectionNotFoundException,
-    CollectionAlreadyExistsException, InsertException,
-    SearchException, DeleteException, QueryException
+from cagr_common.exceptions import (
+    VectorConnectionException, VectorCollectionNotFoundException,
+    VectorCollectionAlreadyExistsException, VectorInsertException,
+    VectorSearchException, VectorDeleteException, VectorQueryException
 )
 
 
@@ -35,7 +35,7 @@ class QdrantDistanceMapper:
         from qdrant_client.models import Distance
         mapping = {
             DistanceMetric.COSINE: Distance.COSINE,
-            DistanceMetric.EUCLIDEAN: Distance.EUCLIDEAN,
+            DistanceMetric.EUCLIDEAN: Distance.EUCLID,
             DistanceMetric.DOT_PRODUCT: Distance.DOT,
         }
         return mapping.get(distance, Distance.COSINE)
@@ -88,7 +88,7 @@ class QdrantDatabase(BaseVectorDatabase):
 
         except Exception as e:
             self.logger.error(f"Failed to connect to Qdrant: {e}")
-            raise ConnectionException(f"Failed to connect to Qdrant: {e}")
+            raise VectorConnectionException(f"Failed to connect to Qdrant: {e}")
 
     def close(self) -> None:
         """关闭连接"""
@@ -108,7 +108,7 @@ class QdrantDatabase(BaseVectorDatabase):
         """创建集合实现"""
         try:
             if self._client.collection_exists(collection_name):
-                raise CollectionAlreadyExistsException(
+                raise VectorCollectionAlreadyExistsException(
                     f"Collection '{collection_name}' already exists", collection_name
                 )
 
@@ -135,11 +135,11 @@ class QdrantDatabase(BaseVectorDatabase):
             self.logger.info(f"Collection '{collection_name}' created successfully")
             return True
 
-        except CollectionAlreadyExistsException:
+        except VectorCollectionAlreadyExistsException:
             raise
         except Exception as e:
             self.logger.error(f"Failed to create collection '{collection_name}': {e}")
-            raise InsertException(f"Failed to create collection: {e}")
+            raise VectorInsertException(f"Failed to create collection: {e}")
 
     def _create_hybrid_collection_impl(
         self,
@@ -152,7 +152,7 @@ class QdrantDatabase(BaseVectorDatabase):
         """创建混合向量集合实现"""
         try:
             if self._client.collection_exists(collection_name):
-                raise CollectionAlreadyExistsException(
+                raise VectorCollectionAlreadyExistsException(
                     f"Collection '{collection_name}' already exists", collection_name
                 )
 
@@ -176,11 +176,11 @@ class QdrantDatabase(BaseVectorDatabase):
             self.logger.info(f"Hybrid collection '{collection_name}' created successfully")
             return True
 
-        except CollectionAlreadyExistsException:
+        except VectorCollectionAlreadyExistsException:
             raise
         except Exception as e:
             self.logger.error(f"Failed to create hybrid collection '{collection_name}': {e}")
-            raise InsertException(f"Failed to create hybrid collection: {e}")
+            raise VectorInsertException(f"Failed to create hybrid collection: {e}")
 
     def drop_collection(self, collection_name: str) -> bool:
         """删除集合"""
@@ -199,7 +199,7 @@ class QdrantDatabase(BaseVectorDatabase):
             raise
         except Exception as e:
             self.logger.error(f"Failed to drop collection '{collection_name}': {e}")
-            raise DeleteException(f"Failed to drop collection: {e}")
+            raise VectorDeleteException(f"Failed to drop collection: {e}")
 
     def has_collection(self, collection_name: str) -> bool:
         """检查集合是否存在"""
@@ -207,7 +207,7 @@ class QdrantDatabase(BaseVectorDatabase):
             return self._client.collection_exists(collection_name)
         except Exception as e:
             self.logger.error(f"Failed to check collection '{collection_name}': {e}")
-            raise ConnectionException(f"Failed to check collection: {e}")
+            raise VectorConnectionException(f"Failed to check collection: {e}")
 
     def list_collections(self) -> List[str]:
         """列出所有集合"""
@@ -216,7 +216,7 @@ class QdrantDatabase(BaseVectorDatabase):
             return [col.name for col in collections.collections]
         except Exception as e:
             self.logger.error(f"Failed to list collections: {e}")
-            raise ConnectionException(f"Failed to list collections: {e}")
+            raise VectorConnectionException(f"Failed to list collections: {e}")
 
     def get_collection_info(self, collection_name: str) -> CollectionInfo:
         """获取集合信息"""
@@ -269,7 +269,7 @@ class QdrantDatabase(BaseVectorDatabase):
             raise
         except Exception as e:
             self.logger.error(f"Failed to get collection info '{collection_name}': {e}")
-            raise QueryException(f"Failed to get collection info: {e}")
+            raise VectorQueryException(f"Failed to get collection info: {e}")
 
     def _insert_impl(self, collection_name: str, data: List[VectorData]) -> int:
         """插入数据实现"""
@@ -296,11 +296,11 @@ class QdrantDatabase(BaseVectorDatabase):
             if result.status == UpdateStatus.COMPLETED:
                 return len(data)
             else:
-                raise InsertException(f"Insert operation status: {result.status}")
+                raise VectorInsertException(f"Insert operation status: {result.status}")
 
         except Exception as e:
             self.logger.error(f"Failed to insert data into '{collection_name}': {e}")
-            raise InsertException(f"Failed to insert data: {e}")
+            raise VectorInsertException(f"Failed to insert data: {e}")
 
     def insert_hybrid(
         self,
@@ -353,13 +353,13 @@ class QdrantDatabase(BaseVectorDatabase):
             if result.status == UpdateStatus.COMPLETED:
                 return len(dense_data)
             else:
-                raise InsertException(f"Hybrid insert operation status: {result.status}")
+                raise VectorInsertException(f"Hybrid insert operation status: {result.status}")
 
         except CollectionNotFoundException:
             raise
         except Exception as e:
             self.logger.error(f"Failed to insert hybrid data into '{collection_name}': {e}")
-            raise InsertException(f"Failed to insert hybrid data: {e}")
+            raise VectorInsertException(f"Failed to insert hybrid data: {e}")
 
     def _search_impl(self, params: SearchParams) -> List[SearchResult]:
         """搜索实现"""
@@ -388,7 +388,7 @@ class QdrantDatabase(BaseVectorDatabase):
 
         except Exception as e:
             self.logger.error(f"Failed to search in '{params.collection_name}': {e}")
-            raise SearchException(f"Failed to search: {e}")
+            raise VectorSearchException(f"Failed to search: {e}")
 
     def hybrid_search(self, params: HybridSearchParams) -> List[SearchResult]:
         """混合向量搜索"""
@@ -437,7 +437,7 @@ class QdrantDatabase(BaseVectorDatabase):
             raise
         except Exception as e:
             self.logger.error(f"Failed to hybrid search in '{params.collection_name}': {e}")
-            raise SearchException(f"Failed to hybrid search: {e}")
+            raise VectorSearchException(f"Failed to hybrid search: {e}")
 
     def _delete_impl(
         self,
@@ -470,11 +470,11 @@ class QdrantDatabase(BaseVectorDatabase):
                 # Qdrant不返回删除数量，我们假设全部删除成功
                 return len(ids) if ids else -1
             else:
-                raise DeleteException(f"Delete operation status: {result.status}")
+                raise VectorDeleteException(f"Delete operation status: {result.status}")
 
         except Exception as e:
             self.logger.error(f"Failed to delete from '{collection_name}': {e}")
-            raise DeleteException(f"Failed to delete: {e}")
+            raise VectorDeleteException(f"Failed to delete: {e}")
 
     def query(
         self,
@@ -524,7 +524,7 @@ class QdrantDatabase(BaseVectorDatabase):
             raise
         except Exception as e:
             self.logger.error(f"Failed to query '{collection_name}': {e}")
-            raise QueryException(f"Failed to query: {e}")
+            raise VectorQueryException(f"Failed to query: {e}")
 
     def check_collection_limit(self, collection_name: str) -> CollectionLimit:
         """检查集合限制"""
@@ -536,7 +536,7 @@ class QdrantDatabase(BaseVectorDatabase):
             )
         except Exception as e:
             self.logger.error(f"Failed to check collection limit for '{collection_name}': {e}")
-            raise QueryException(f"Failed to check collection limit: {e}")
+            raise VectorQueryException(f"Failed to check collection limit: {e}")
 
     def _convert_filter(self, filter_dict: Dict[str, Any]):
         """转换过滤条件"""

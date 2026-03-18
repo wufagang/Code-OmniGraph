@@ -7,8 +7,9 @@ Code-OmniGraph 图数据库模块
 from .interfaces import GraphDatabase
 from .models import *
 from .config import GraphDBConfig, Neo4jConfig
-from .exceptions import *
+from cagr_common.exceptions import *
 from .factory import GraphDBFactory
+from .impl.neo4j_impl import Neo4jDatabase
 
 # 便捷函数
 def create_graph_db(config: GraphDBConfig = None) -> GraphDatabase:
@@ -27,11 +28,13 @@ __all__ = [
     # 配置
     "GraphDBConfig", "Neo4jConfig",
     # 异常
-    "GraphDBException", "ConnectionException", "TransactionException",
-    "NodeException", "NodeNotFoundException", "RelationshipException",
-    "QueryException", "ConfigException", "SchemaException",
+    "GraphDBException", "GraphConnectionException", "GraphTransactionException",
+    "GraphNodeException", "GraphNodeNotFoundException", "GraphRelationshipException",
+    "GraphQueryException", "GraphConfigException", "GraphSchemaException",
     # 工厂
     "GraphDBFactory",
+    # 实现
+    "Neo4jDatabase",
     # 便捷函数
     "create_graph_db"
 ]

@@ -125,3 +125,34 @@ class VectorQueryException(VectorDBException):
 class VectorConfigException(VectorDBException):
     """向量数据库配置异常"""
     pass
+
+
+# ==================== 嵌入模型异常 ====================
+
+class EmbeddingException(Exception):
+    """嵌入模型基础异常"""
+
+    def __init__(self, message: str, provider: Optional[str] = None):
+        super().__init__(message)
+        self.message = message
+        self.provider = provider
+
+
+class EmbeddingConnectionException(EmbeddingException):
+    """嵌入模型连接/网络异常（可重试）"""
+    pass
+
+
+class EmbeddingConfigException(EmbeddingException):
+    """嵌入模型配置异常"""
+    pass
+
+
+class EmbeddingRateLimitException(EmbeddingException):
+    """嵌入模型 API 限流异常"""
+    pass
+
+
+class EmbeddingTimeoutException(EmbeddingException):
+    """嵌入模型请求超时异常"""
+    pass

@@ -15,7 +15,7 @@ sys.path.insert(0, core_dir)
 
 from cagr_processor.graph_dao.config import GraphDBConfig
 from cagr_processor.graph_dao.factory import GraphDBFactory
-from cagr_processor.graph_dao.models import (
+from cagr_processor.graph_code.models import (
     ProjectNode, FileNode, ClassNode, FunctionNode, VariableNode,
     CallRelationship, TaintFlowRelationship, DataAccessRelationship,
     NodeLabel, RelType, RiskLevel

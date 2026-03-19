@@ -5,7 +5,7 @@ import os
 from unittest.mock import Mock, MagicMock, patch
 
 from cagr_processor.graph_dao import GraphDBConfig, Neo4jConfig
-from cagr_processor.graph_dao.models import (
+from cagr_processor.graph_code.models import (
     ProjectNode, FileNode, ClassNode, FunctionNode,
     CallRelationship, TaintFlowRelationship, RiskLevel
 )

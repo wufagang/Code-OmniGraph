@@ -5,14 +5,14 @@ Code-OmniGraph 图数据库模块
 """
 
 from .interfaces import GraphDatabase
-from .models import *
 from .config import GraphDBConfig, Neo4jConfig
 from cagr_common.exceptions import *
 from .factory import GraphDBFactory
 from .impl.neo4j_impl import Neo4jDatabase
+from cagr_processor.graph_code.models import *
 
 # 业务层（通过 graph_dao 统一导出，方便调用方使用）
-from cagr_processor.graph_service import CodeGraphService
+from cagr_processor.graph_code.graph_service import CodeGraphService
 
 # 便捷函数
 def create_graph_db(config: GraphDBConfig = None) -> GraphDatabase:

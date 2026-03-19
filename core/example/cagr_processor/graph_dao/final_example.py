@@ -26,7 +26,7 @@ try:
     from cagr_processor.graph_dao.config import GraphDBConfig, Neo4jConfig
 
     # 导入模型
-    from cagr_processor.graph_dao.models import (
+    from cagr_processor.graph_code.models import (
         ProjectNode, FileNode, ClassNode, FunctionNode,
         CallRelationship, TaintFlowRelationship, DataAccessRelationship,
         NodeLabel, RelType, RiskLevel, GraphStats, SubGraph

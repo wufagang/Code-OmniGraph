@@ -12,7 +12,7 @@ import logging
 from typing import List, Optional, Dict, Any
 
 from cagr_processor.graph_dao.interfaces import GraphDatabase
-from cagr_processor.graph_dao.models import (
+from cagr_processor.graph_code.models import (
     ProjectNode, FileNode, ClassNode, FunctionNode, VariableNode,
     CallRelationship, TaintFlowRelationship, DataAccessRelationship,
     GraphStats, SubGraph, NodeLabel, RelType, RiskLevel,

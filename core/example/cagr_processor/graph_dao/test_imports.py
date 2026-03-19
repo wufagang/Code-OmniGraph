@@ -27,7 +27,7 @@ try:
     from core.cagr_processor.graph_dao.factory import GraphDBFactory
     print("✓ 成功导入 GraphDBFactory")
 
-    from core.cagr_processor.graph_dao.models import ProjectNode
+    from core.cagr_processor.graph_code.models import ProjectNode
     print("✓ 成功导入 ProjectNode")
 
     # 测试创建配置

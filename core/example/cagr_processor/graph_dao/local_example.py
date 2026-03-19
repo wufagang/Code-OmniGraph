@@ -19,7 +19,7 @@ sys.path.insert(0, str(project_root / "core"))
 # 直接导入需要的类
 from cagr_processor.graph_dao.config import GraphDBConfig, Neo4jConfig
 from cagr_processor.graph_dao.factory import GraphDBFactory
-from cagr_processor.graph_dao.models import (
+from cagr_processor.graph_code.models import (
     ProjectNode, FileNode, ClassNode, FunctionNode
 )
 from cagr_processor.graph_dao.impl.neo4j_impl import Neo4jDatabase

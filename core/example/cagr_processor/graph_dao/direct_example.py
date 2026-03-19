@@ -25,7 +25,7 @@ try:
     from cagr_processor.graph_dao.factory import GraphDBFactory
 
     # 导入模型
-    from cagr_processor.graph_dao.models import (
+    from cagr_processor.graph_code.models import (
         ProjectNode, FileNode, ClassNode, FunctionNode
     )
 

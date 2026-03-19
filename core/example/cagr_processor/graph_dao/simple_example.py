@@ -16,7 +16,7 @@ if str(project_root) not in sys.path:
 # 导入必要的模块
 from cagr_processor.graph_dao.config import GraphDBConfig
 from cagr_processor.graph_dao.factory import GraphDBFactory
-from cagr_processor.graph_dao.models import (
+from cagr_processor.graph_code.models import (
     ProjectNode, FileNode, ClassNode, FunctionNode
 )
 

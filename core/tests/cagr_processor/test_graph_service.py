@@ -8,12 +8,12 @@ import pytest
 from unittest.mock import MagicMock, call
 
 from cagr_processor.graph_dao.interfaces import GraphDatabase
-from cagr_processor.graph_dao.models import (
+from cagr_processor.graph_code.models import (
     ProjectNode, FileNode, ClassNode, FunctionNode, VariableNode,
     CallRelationship, TaintFlowRelationship, DataAccessRelationship,
     GraphStats, NodeLabel, RelType, RiskLevel,
 )
-from cagr_processor.graph_service import CodeGraphService
+from cagr_processor.graph_code.graph_service import CodeGraphService
 
 
 class TestCodeGraphService:

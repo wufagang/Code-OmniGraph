@@ -171,7 +171,7 @@ class BaseGraphDatabase(GraphDatabase, ABC):
             **project.metadata
         })
 
-        return self._create_node_impl(NodeLabel.PROJECT, project.name, properties)
+        return self._create_node_impl(NodeLabel.PROJECT, "name", properties)
 
     @retry_on_failure(max_attempts=3, delay=1.0)
     def create_file(self, file: FileNode) -> bool:
@@ -188,7 +188,7 @@ class BaseGraphDatabase(GraphDatabase, ABC):
             **file.metadata
         })
 
-        return self._create_node_impl(NodeLabel.FILE, file.path, properties)
+        return self._create_node_impl(NodeLabel.FILE, "path", properties)
 
     @retry_on_failure(max_attempts=3, delay=1.0)
     def create_class(self, class_node: ClassNode) -> bool:
@@ -208,7 +208,7 @@ class BaseGraphDatabase(GraphDatabase, ABC):
             **class_node.metadata
         })
 
-        return self._create_node_impl(NodeLabel.CLASS, class_node.qualified_name, properties)
+        return self._create_node_impl(NodeLabel.CLASS, "qualified_name", properties)
 
     @retry_on_failure(max_attempts=3, delay=1.0)
     def create_function(self, function: FunctionNode) -> bool:
@@ -232,7 +232,7 @@ class BaseGraphDatabase(GraphDatabase, ABC):
             **function.metadata
         })
 
-        return self._create_node_impl(NodeLabel.FUNCTION, function.qualified_name, properties)
+        return self._create_node_impl(NodeLabel.FUNCTION, "qualified_name", properties)
 
     @retry_on_failure(max_attempts=3, delay=1.0)
     def create_variable(self, variable: VariableNode) -> bool:
@@ -249,7 +249,7 @@ class BaseGraphDatabase(GraphDatabase, ABC):
             **variable.metadata
         })
 
-        return self._create_node_impl(NodeLabel.VARIABLE, variable.qualified_name, properties)
+        return self._create_node_impl(NodeLabel.VARIABLE, "qualified_name", properties)
 
     @retry_on_failure(max_attempts=3, delay=1.0)
     def create_project_contains_file(self, project_name: str, file_path: str) -> bool:

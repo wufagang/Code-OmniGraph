@@ -20,29 +20,17 @@ from cagr_processor.graph_code.models import (
     CallRelationship, TaintFlowRelationship, DataAccessRelationship,
     NodeLabel, RelType, RiskLevel
 )
-
+from cagr_processor.graph_code.graph_service import CodeGraphService
 
 def setup_neo4j_connection():
     """设置 Neo4j 连接配置"""
     # 从环境变量加载配置
     config = GraphDBConfig.from_env()
 
-    # 或者手动创建配置
-    # config = GraphDBConfig(
-    #     neo4j_config={
-    #         "uri": "bolt://localhost:7687",
-    #         "username": "neo4j",
-    #         "password": "password"
-    #     }
-    # )
-
     # 创建图数据库实例
     graph_db = GraphDBFactory.create(config)
-
-    # 连接到数据库
-    graph_db.connect()
-
-    return graph_db
+    service = CodeGraphService(graph_db)
+    return service
 
 
 def example_create_nodes(graph_db):
@@ -370,40 +358,40 @@ def cleanup_example_data(graph_db):
 
 def main():
     """主函数：运行所有示例"""
-    graph_db = None
+    code_service = None
 
     try:
         # 1. 设置连接
         print("正在连接到 Neo4j 数据库...")
-        graph_db = setup_neo4j_connection()
+        code_service = setup_neo4j_connection()
         print("连接成功！")
 
         # 2. 创建节点
-        example_create_nodes(graph_db)
+        example_create_nodes(code_service)
 
         # 3. 创建关系
-        example_create_relationships(graph_db)
+        example_create_relationships(code_service)
 
         # 4. 查询操作
-        example_query_operations(graph_db)
+        example_query_operations(code_service)
 
         # 5. 图统计
-        example_graph_stats(graph_db)
+        example_graph_stats(code_service)
 
         # 6. 子图操作
-        example_subgraph_operations(graph_db)
+        example_subgraph_operations(code_service)
 
         # 7. 原生 Cypher 查询
-        example_cypher_query(graph_db)
+        example_cypher_query(code_service)
 
         # 8. 事务操作
-        example_transaction_operations(graph_db)
+        example_transaction_operations(code_service)
 
         # 9. 高级查询
-        example_advanced_queries(graph_db)
+        example_advanced_queries(code_service)
 
         # 10. 清理数据（可选）
-        # cleanup_example_data(graph_db)
+        # cleanup_example_data(code_service)
 
         print("\n=== 所有示例执行完成 ===")
 
@@ -413,9 +401,9 @@ def main():
         traceback.print_exc()
 
     finally:
-        if graph_db:
+        if code_service:
             # 关闭连接
-            graph_db.close()
+            code_service.close()
             print("数据库连接已关闭")
 
 

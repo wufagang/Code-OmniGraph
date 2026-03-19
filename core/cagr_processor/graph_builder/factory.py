@@ -6,6 +6,7 @@ import logging
 from .interfaces import GraphDatabase
 from .config import GraphDBConfig, Neo4jConfig
 from .impl.neo4j_impl import Neo4jDatabase
+from .impl.neo4j_impl_complete import Neo4jDatabaseComplete
 from cagr_common.exceptions import GraphConfigException
 
 
@@ -14,7 +15,7 @@ class GraphDBFactory:
 
     # 注册的数据库实现
     _registry: Dict[str, Type[GraphDatabase]] = {
-        "neo4j": Neo4jDatabase,
+        "neo4j": Neo4jDatabaseComplete,  # 使用完整实现
     }
 
     @classmethod

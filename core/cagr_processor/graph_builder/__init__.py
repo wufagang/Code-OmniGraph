@@ -10,6 +10,7 @@ from .config import GraphDBConfig, Neo4jConfig
 from cagr_common.exceptions import *
 from .factory import GraphDBFactory
 from .impl.neo4j_impl import Neo4jDatabase
+from .impl.neo4j_impl_complete import Neo4jDatabaseComplete
 
 # 便捷函数
 def create_graph_db(config: GraphDBConfig = None) -> GraphDatabase:
@@ -34,7 +35,7 @@ __all__ = [
     # 工厂
     "GraphDBFactory",
     # 实现
-    "Neo4jDatabase",
+    "Neo4jDatabase", "Neo4jDatabaseComplete",
     # 便捷函数
     "create_graph_db"
 ]

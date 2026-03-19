@@ -28,7 +28,7 @@ def retry_on_failure(max_attempts: int = 3, delay: float = 1.0):
             for attempt in range(max_attempts):
                 try:
                     return func(self, *args, **kwargs)
-                except ConnectionException as e:
+                except GraphConnectionException as e:
                     last_exception = e
                     if attempt < max_attempts - 1:
                         if hasattr(self, 'logger') and self.logger:
@@ -61,7 +61,7 @@ class BaseGraphDatabase(GraphDatabase, ABC):
     def _validate_connection(self):
         """验证连接状态"""
         if not self._connection:
-            raise ConnectionException("Database connection is not established")
+            raise GraphConnectionException("Database connection is not established")
 
     def _validate_node_data(self, node_data: Dict[str, Any], required_fields: List[str]):
         """验证节点数据"""

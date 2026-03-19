@@ -1,10 +1,29 @@
 # Code-OmniGraph Neo4j 图数据库使用示例
 
-这个目录包含了使用 Code-OmniGraph 的 Neo4j 图数据库模块的完整示例。
+## 模块架构
+
+本示例基于以下三层架构：
+
+```
+调用方（示例代码）
+       ↓
+CodeGraphService          # cagr_processor.graph_code.graph_service
+  职责：领域模型字段映射、业务决策、查询结果组装
+       ↓
+GraphDatabase 接口        # cagr_processor.graph_dao.interfaces
+  职责：通用 DB 操作契约（create_node / execute_cypher 等）
+       ↓
+Neo4jDatabase             # cagr_processor.graph_dao.impl.neo4j_impl
+  职责：Cypher 执行，不含业务语义
+```
+
+领域模型定义在 `cagr_processor.graph_code.models`，包括节点类型、关系类型和枚举。
+
+---
 
 ## 前提条件
 
-1. **安装 Neo4j 数据库（建议使用 Docker）**
+**1. 启动 Neo4j（Docker）**
 ```bash
 docker run -d \
   --name neo4j \
@@ -13,217 +32,180 @@ docker run -d \
   neo4j:latest
 ```
 
-2. **安装 Python 依赖**
+**2. 安装 Python 依赖**
 ```bash
 pip install -r core/requirements.txt
 ```
 
-3. **配置环境变量**（可选）
+**3. 配置环境变量**
 ```bash
 cp config_example.env .env
-# 编辑 .env 文件，设置正确的 Neo4j 连接信息
+# 编辑 .env，设置 NEO4J_URI / NEO4J_USERNAME / NEO4J_PASSWORD
 ```
 
-## 快速开始
+---
 
-### 1. quick_start.py
-最简洁的入门示例，展示基本用法：
-- 连接 Neo4j 数据库
-- 创建节点（项目、文件、类、函数）
-- 创建关系
-- 基本查询操作
+## 示例文件
 
-运行：
+### quick_start.py（推荐入门）
+
+最精简的入门示例，展示完整的基本操作流程：
+
+- 创建项目、文件、类、函数节点
+- 建立节点间关系（CONTAINS / DEFINES / HAS_METHOD）
+- 查询函数、获取调用链、统计图谱
+- 污点流安全分析
+- 通过 `graph_db.execute_cypher()` 执行原生 Cypher（逃生舱口）
+
 ```bash
-python quick_start.py
+# 从 core 目录运行
+PYTHONPATH=core python core/example/cagr_processor/graph_dao/quick_start.py
 ```
-### 2. 运行简化示例
-绕过模块导入问题的简化版本：
+
+### neo4j_usage_example.py（完整功能演示）
+
+完整功能演示，覆盖所有节点类型和关系类型：
+
+- 所有节点类型的创建（Project / File / Class / Function / Variable）
+- 所有关系类型的创建（CONTAINS / DEFINES / HAS_METHOD / CALLS / READS / WRITES / TAINT_FLOW_TO）
+- 完整查询操作（按名称/全限定名查找、调用链、上下游、污点流、子图）
+- 原生 Cypher 查询与高级查询模式
+- 事务管理（begin_transaction / commit / rollback）
+
 ```bash
-PYTHONPATH=/Users/wufagang/project/aiopen/code-omnigraph/core python direct_example.py
+PYTHONPATH=core python core/example/cagr_processor/graph_dao/neo4j_usage_example.py
 ```
 
-### 3. 使用运行脚本
-我们提供了便捷的运行脚本：
+### test_config.py
+
+验证当前环境配置是否正确，不做实际数据写入：
+
 ```bash
-# 运行简化示例
-python run_example.py quick
-
-# 运行完整示例（需要修复导入问题）
-python run_example.py full
+PYTHONPATH=core python core/example/cagr_processor/graph_dao/test_config.py
 ```
 
-## 示例文件说明
+---
 
-### 1. local_example.py ⭐（推荐）
-使用本地 Neo4j 配置的示例，最容易运行：
-- 硬编码本地 Neo4j 连接信息（localhost:7687）
-- 创建基本节点和关系
-- 演示查询操作
-- 适合初次体验
+## 代码模式
 
-### 2. direct_example.py
-绕过模块导入问题的简化版本：
-- 直接导入核心模块
-- 使用环境变量中的配置
-- 适合已配置好 Neo4j 环境的用户
-
-### 3. simple_example.py
-极简示例，展示最基本用法：
-- 最少的代码量
-- 清晰的操作步骤
-- 适合理解基本概念
-
-### 4. neo4j_usage_example.py
-完整的功能演示（需要修复导入问题）：
-- 所有节点类型的创建
-- 所有关系类型的创建
-- 各种查询操作
-- 事务处理
-- 高级 Cypher 查询
-- 安全分析（污点流）
-
-## 常见问题
-
-### 模块导入错误
-如果遇到 `ModuleNotFoundError` 或 `No module named 'core'` 错误：
-
-1. **使用本地示例**（推荐）：
-   ```bash
-   python local_example.py
-   ```
-
-2. **设置正确的 Python 路径**：
-   ```bash
-   PYTHONPATH=/Users/wufagang/project/aiopen/code-omnigraph/core python direct_example.py
-   ```
-
-3. **从项目根目录运行**：
-   ```bash
-   cd /Users/wufagang/project/aiopen/code-omnigraph
-   PYTHONPATH=core python core/example/cagr_processor/graph_dao/local_example.py
-   ```
-
-### 连接失败
-如果连接 Neo4j 失败：
-
-1. **检查 Neo4j 是否运行**：
-   ```bash
-   docker ps  # 查看 Docker 容器状态
-   ```
-
-2. **验证连接信息**：
-   - URI: `bolt://localhost:7687`
-   - 用户名: `neo4j`
-   - 密码: `password`
-
-3. **查看 Neo4j 日志**：
-   ```bash
-   docker logs neo4j
-   ```
-
-### 权限问题
-如果遇到权限错误，确保：
-- Neo4j 用户有足够的权限
-- 数据库允许远程连接（如果是远程数据库）
-
-## 核心概念
-
-### 图数据库抽象层
-
-Code-OmniGraph 提供了一个抽象的图数据库接口，支持：
-
-1. **节点类型**：
-   - Project（项目）
-   - File（文件）
-   - Class（类）
-   - Function（函数）
-   - Variable（变量）
-
-2. **关系类型**：
-   - CONTAINS（包含）
-   - DEFINES（定义）
-   - HAS_METHOD（包含方法）
-   - CALLS（调用）
-   - READS/WRITES（读写变量）
-   - TAINT_FLOW_TO（污点流）
-
-3. **查询能力**：
-   - 根据名称查找函数
-   - 获取调用链
-   - 查找上游/下游函数
-   - 安全漏洞路径分析
-   - 子图提取
-
-### 使用模式
+### 标准用法
 
 ```python
-from core.cagr_processor.graph_dao.config import GraphDBConfig
-from core.cagr_processor.graph_dao.factory import GraphDBFactory
+from cagr_processor.graph_dao.config import GraphDBConfig
+from cagr_processor.graph_dao.factory import GraphDBFactory
+from cagr_processor.graph_code.models import ProjectNode, FunctionNode, TaintFlowRelationship, RiskLevel
+from cagr_processor.graph_code.graph_service import CodeGraphService
 
-# 1. 创建配置
+# 1. 从环境变量加载配置
 config = GraphDBConfig.from_env()
 
-# 2. 创建数据库实例
+# 2. 创建 DB 层实例，包装为业务层服务
 graph_db = GraphDBFactory.create(config)
+service = CodeGraphService(graph_db)
 
-# 3. 连接数据库
-graph_db.connect()
-
-# 4. 执行操作
 try:
-    # 创建节点、关系、查询等
-    pass
+    # 3. 通过业务层操作（推荐）
+    service.create_project(ProjectNode(name="my-app", language="java", version="1.0.0"))
+    service.create_function(FunctionNode(
+        qualified_name="com.example.Foo#bar",
+        name="bar",
+        signature="public String bar(int x)",
+        return_type="String",
+    ))
+
+    # 查询
+    fn = service.find_function_by_name("bar")
+    stats = service.get_graph_stats()
+
+    # 4. 需要自定义查询时，通过 DB 层执行原生 Cypher
+    results = graph_db.execute_cypher(
+        "MATCH (f:Function {name: $name}) RETURN f LIMIT 5",
+        {"name": "bar"}
+    )
 finally:
-    # 5. 关闭连接
     graph_db.close()
 ```
 
-## 实际应用场景
+### 节点类型
 
-### 1. 代码分析
-构建代码知识图谱，分析：
-- 函数调用关系
-- 类继承层次
-- 依赖关系图
+| 类 | unique_key | 说明 |
+|----|-----------|------|
+| `ProjectNode` | `name` | 项目根节点 |
+| `FileNode` | `path` | 源文件 |
+| `ClassNode` | `qualified_name` | 类/接口 |
+| `FunctionNode` | `qualified_name` | 函数/方法 |
+| `VariableNode` | `qualified_name` | 字段/变量 |
 
-### 2. 安全分析
-通过污点流分析发现：
-- SQL 注入漏洞
-- XSS 漏洞
-- 命令注入漏洞
+### 关系类型
 
-### 3. 代码重构
-利用图结构进行：
-- 影响分析
-- 重构建议
-- 代码质量评估
+| 关系 | 起点 → 终点 | 创建方法 |
+|------|------------|---------|
+| `CONTAINS` | Project → File | `create_project_contains_file()` |
+| `DEFINES` | File → Class\|Function | `create_file_defines_class()` / `create_file_defines_function()` |
+| `HAS_METHOD` | Class → Function | `create_class_has_method()` |
+| `CALLS` | Function → Function | `create_calls_relationship()` |
+| `READS` / `WRITES` | Function → Variable | `create_data_access_relationship(access_type="READ"\|"WRITE")` |
+| `TAINT_FLOW_TO` | Function → Function | `create_taint_flow_relationship()` |
 
-### 4. 智能问答
-结合 Graph-RAG 技术：
-- 代码语义搜索
-- 智能代码补全
-- 问题定位
+### 业务查询方法
 
-## 故障排除
+```python
+# 查找函数
+service.find_function_by_name("bar")
+service.find_function_by_qualified_name("com.example.Foo#bar")
 
-### 连接失败
-- 检查 Neo4j 服务是否运行
-- 验证连接 URI、用户名和密码
-- 确保防火墙允许连接
+# 调用链分析
+service.get_call_chain("com.example.Foo#bar", depth=3)     # 下游调用链
+service.get_upstream_callers("com.example.Foo#bar", depth=1)   # 上游调用者
+service.get_downstream_callees("com.example.Foo#bar", depth=1) # 下游被调用者
 
-### 查询超时
-- 增加查询超时时间
-- 优化复杂查询
-- 添加适当的索引
+# 安全分析
+service.find_taint_flows(source_function="...", sink_function="...", risk_level="High")
+service.find_vulnerable_paths("executeQuery")
 
-### 内存问题
-- 限制查询返回的结果数量
-- 使用分页查询
-- 调整 Neo4j 内存配置
+# 子图（用于 LLM 上下文组装）
+service.get_subgraph_for_function("com.example.Foo#bar", depth=2)
 
-## 扩展阅读
+# 统计
+service.get_graph_stats()  # 返回 GraphStats 对象
+```
 
-- [Neo4j 官方文档](https://neo4j.com/docs/)
-- [Cypher 查询语言](https://neo4j.com/docs/cypher-manual/)
-- [Code-OmniGraph 架构文档](../../docs/)
+---
+
+## 环境变量
+
+参考 `config_example.env`：
+
+```bash
+NEO4J_URI=bolt://localhost:7687
+NEO4J_USERNAME=neo4j
+NEO4J_PASSWORD=password
+GRAPH_DB_TYPE=neo4j
+
+# 可选连接池参数
+NEO4J_MAX_CONNECTION_LIFETIME=3600
+NEO4J_MAX_CONNECTION_POOL_SIZE=50
+NEO4J_CONNECTION_ACQUISITION_TIMEOUT=60
+```
+
+---
+
+## 常见问题
+
+**连接失败**
+```bash
+docker ps          # 确认 Neo4j 容器运行中
+docker logs neo4j  # 查看 Neo4j 日志
+```
+确认 URI、用户名、密码与 Neo4j 实际配置一致。
+
+**ModuleNotFoundError**
+```bash
+# 必须从项目根目录并设置 PYTHONPATH
+PYTHONPATH=core python core/example/cagr_processor/graph_dao/quick_start.py
+```
+
+**查询超时 / 性能问题**
+- 对大批量数据使用 `graph_db.execute_cypher()` 配合 `UNWIND` 批量写入
+- 复杂查询添加 `LIMIT` 限制返回量
+- 在 Neo4j Browser（`http://localhost:7474`）中为高频查询字段创建索引

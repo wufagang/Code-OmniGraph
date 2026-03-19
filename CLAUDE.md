@@ -29,7 +29,7 @@ python core/run_tests.py
 
 # Run specific test module
 python -m pytest core/cagr_processor/graph_builder/tests/test_neo4j_impl.py -v
-python -m pytest core/cagr_processor/embedding_worker/tests/ -v
+python -m pytest core/cagr_processor/embedding_dao/tests/ -v
 
 # Start Celery worker (required for async tasks)
 celery -A core.cagr_processor.tasks worker --loglevel=info

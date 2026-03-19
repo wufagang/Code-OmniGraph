@@ -28,7 +28,7 @@ pip install -r core/requirements.txt
 python run_tests.py
 
 # 运行特定模块测试
-python -m pytest tests/cagr_processor/embedding_worker/ -v
+python -m pytest tests/cagr_processor/embedding_dao/ -v
 python -m pytest tests/cagr_processor/graph_dao/ -v
 python -m pytest tests/collector/ -v
 python -m pytest tests/server/ -v

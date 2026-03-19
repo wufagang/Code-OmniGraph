@@ -44,7 +44,7 @@ python run_tests.py
 ### 运行特定模块测试
 ```bash
 # 运行向量数据库测试
-python -m pytest tests/cagr_processor/embedding_worker/ -v
+python -m pytest tests/cagr_processor/embedding_dao/ -v
 
 # 运行图数据库测试
 python -m pytest tests/cagr_processor/graph_dao/ -v
@@ -56,7 +56,7 @@ python -m pytest tests/collector/ -v
 python -m pytest tests/server/ -v
 
 # 运行特定测试文件
-python -m pytest tests/cagr_processor/embedding_worker/test_base.py -v
+python -m pytest tests/cagr_processor/embedding_dao/test_base.py -v
 ```
 
 ### 生成覆盖率报告

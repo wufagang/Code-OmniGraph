@@ -2,7 +2,7 @@
 向量数据库模块使用示例
 """
 
-from cagr_processor.embedding_worker import (
+from cagr_processor.embedding_dao import (
     create_vector_db,
     VectorDBConfig,
     QdrantConfig,

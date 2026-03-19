@@ -182,3 +182,24 @@ graph TD
 /Users/wufagang/project/aiopen/code-omnigraph/core/cagr_processor/graph_builder
 代码解析在这个模块下完成
 /Users/wufagang/project/aiopen/code-omnigraph/core/cagr_collector/static_analyzer
+
+
+
+===================================
+
+ @cagr_processor/ 这个模块下新建一个embedding模块
+ 
+===================================================
+
+在embedding 模块下新建一个接口 Embedding
+这个接口中包含以下几个方法：
+preprocessText
+detectDimension
+preprocessTexts
+embed
+embedBatch
+getDimension
+getProvider
+
+根据这个接口做几个不同的实现，根据用户的配置不同使用不同的模型进行向量化处理
+比如：gemini， openai， ollama

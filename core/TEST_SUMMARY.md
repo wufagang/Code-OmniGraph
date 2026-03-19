@@ -16,7 +16,7 @@ core/tests/
 │   │   ├── test_factory.py       # 工厂模式测试 (10 tests)
 │   │   ├── test_models.py        # 模型测试 (10 tests)
 │   │   └── test_qdrant_impl.py   # Qdrant 实现测试 (16 tests)
-│   └── graph_builder/             # 图数据库模块测试
+│   └── graph_dao/             # 图数据库模块测试
 │       └── test_neo4j_impl.py     # Neo4j 实现测试 (6 tests)
 ├── collector/                     # 数据收集模块测试
 │   └── test_tree_sitter_parser.py  # Tree-sitter 解析器测试 (8 tests, 跳过)
@@ -38,7 +38,7 @@ core/tests/
 
 ### 各模块详情
 1. **cagr_processor/embedding_worker**: 61/61 测试通过 ✅
-2. **cagr_processor/graph_builder**: 6/6 测试通过 ✅
+2. **cagr_processor/graph_dao**: 6/6 测试通过 ✅
 3. **server**: 4/4 测试通过 ✅
 4. **collector**: 0/8 测试跳过 (需要 tree-sitter)
 
@@ -48,7 +48,7 @@ core/tests/
 ```
 tests/
 ├── embedding_worker/
-├── graph_builder/
+├── graph_dao/
 ├── collector/
 └── server/
 ```
@@ -58,7 +58,7 @@ tests/
 tests/
 ├── cagr_processor/
 │   ├── embedding_worker/
-│   └── graph_builder/
+│   └── graph_dao/
 ├── collector/
 └── server/
 ```
@@ -76,7 +76,7 @@ python run_tests.py
 python -m pytest tests/cagr_processor/embedding_worker/ -v
 
 # 运行图数据库测试
-python -m pytest tests/cagr_processor/graph_builder/ -v
+python -m pytest tests/cagr_processor/graph_dao/ -v
 
 # 运行数据收集器测试
 python -m pytest tests/collector/ -v
@@ -101,7 +101,7 @@ pytest --cov=core tests/
 ## 🎯 测试覆盖率
 
 - **cagr_processor/embedding_worker**: 95%+ 覆盖率
-- **cagr_processor/graph_builder**: 90%+ 覆盖率
+- **cagr_processor/graph_dao**: 90%+ 覆盖率
 - **collector**: 由于 tree-sitter 依赖，部分测试需要外部库
 - **server**: 基础测试覆盖
 

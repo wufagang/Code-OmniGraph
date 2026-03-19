@@ -101,7 +101,7 @@ python run_example.py full
 3. **从项目根目录运行**：
    ```bash
    cd /Users/wufagang/project/aiopen/code-omnigraph
-   PYTHONPATH=core python core/example/cagr_processor/graph_builder/local_example.py
+   PYTHONPATH=core python core/example/cagr_processor/graph_dao/local_example.py
    ```
 
 ### 连接失败
@@ -158,8 +158,8 @@ Code-OmniGraph 提供了一个抽象的图数据库接口，支持：
 ### 使用模式
 
 ```python
-from core.cagr_processor.graph_builder.config import GraphDBConfig
-from core.cagr_processor.graph_builder.factory import GraphDBFactory
+from core.cagr_processor.graph_dao.config import GraphDBConfig
+from core.cagr_processor.graph_dao.factory import GraphDBFactory
 
 # 1. 创建配置
 config = GraphDBConfig.from_env()

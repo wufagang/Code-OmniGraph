@@ -1,24 +1,24 @@
 #!/usr/bin/env python3
 """
 Code-OmniGraph Neo4j 图数据库快速入门示例
-展示最常用的图数据库操作
+展示最常用的图数据库操作（通过 CodeGraphService 业务层）
 """
 
 import os
 import sys
-from datetime import datetime
 
 # 将 core 目录添加到 Python 路径
 current_file = os.path.abspath(__file__)
 core_dir = os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(current_file))))
 sys.path.insert(0, core_dir)
 
-from cagr_processor.graph_builder.config import GraphDBConfig
-from cagr_processor.graph_builder.factory import GraphDBFactory
-from cagr_processor.graph_builder.models import (
+from cagr_processor.graph_dao.config import GraphDBConfig
+from cagr_processor.graph_dao.factory import GraphDBFactory
+from cagr_processor.graph_dao.models import (
     ProjectNode, FileNode, ClassNode, FunctionNode,
     TaintFlowRelationship, RiskLevel
 )
+from cagr_processor.graph_service import CodeGraphService
 
 
 def quick_start_example():
@@ -28,90 +28,75 @@ def quick_start_example():
     # 1. 创建图数据库配置
     config = GraphDBConfig.from_env()
 
-    # 2. 创建图数据库实例
+    # 2. 创建 DB 层实例，再包装为业务层服务
     graph_db = GraphDBFactory.create(config)
+    service = CodeGraphService(graph_db)
 
-    # 3. 连接到数据库
-    graph_db.connect()
     print("✓ 成功连接到 Neo4j 数据库\n")
 
     try:
-        # 4. 创建一个简单的代码知识图谱
+        # 3. 创建一个简单的代码知识图谱（通过业务层）
         print("正在创建示例代码图谱...")
 
-        # 创建项目
-        project = ProjectNode(
+        service.create_project(ProjectNode(
             name="demo-app",
             language="java",
             version="1.0.0"
-        )
-        graph_db.create_project(project)
+        ))
 
-        # 创建文件
-        file_node = FileNode(
+        service.create_file(FileNode(
             path="com/example/UserController.java",
             name="UserController.java",
             language="java"
-        )
-        graph_db.create_file(file_node)
+        ))
 
-        # 创建类
-        class_node = ClassNode(
+        service.create_class(ClassNode(
             qualified_name="com.example.UserController",
             name="UserController"
-        )
-        graph_db.create_class(class_node)
+        ))
 
-        # 创建函数
-        function_node = FunctionNode(
+        service.create_function(FunctionNode(
             qualified_name="com.example.UserController.getUser",
             name="getUser",
             signature="public User getUser(Long id)",
             return_type="User"
-        )
-        graph_db.create_function(function_node)
+        ))
 
         # 创建关系
-        graph_db.create_project_contains_file("demo-app", "com/example/UserController.java")
-        graph_db.create_file_defines_class("com/example/UserController.java", "com.example.UserController")
-        graph_db.create_class_has_method("com.example.UserController", "com.example.UserController.getUser")
+        service.create_project_contains_file("demo-app", "com/example/UserController.java")
+        service.create_file_defines_class("com/example/UserController.java", "com.example.UserController")
+        service.create_class_has_method("com.example.UserController", "com.example.UserController.getUser")
 
         print("✓ 图谱创建完成\n")
 
-        # 5. 查询操作
+        # 4. 查询操作（通过业务层）
         print("=== 查询演示 ===")
 
-        # 查找函数
-        function = graph_db.find_function_by_name("getUser")
+        function = service.find_function_by_name("getUser")
         if function:
             print(f"✓ 找到函数: {function.qualified_name}")
 
-        # 获取调用链
-        chains = graph_db.get_call_chain("com.example.UserController.getUser", depth=2)
+        chains = service.get_call_chain("com.example.UserController.getUser", depth=2)
         print(f"✓ 调用链数量: {len(chains)}")
 
-        # 获取图统计
-        stats = graph_db.get_graph_stats()
+        stats = service.get_graph_stats()
         print(f"✓ 总节点数: {stats.total_nodes}")
         print(f"✓ 总关系数: {stats.total_relationships}")
 
-        # 6. 高级查询：查找安全漏洞路径
+        # 5. 安全分析
         print("\n=== 安全分析演示 ===")
 
-        # 创建一些污点流示例
-        taint_flow = TaintFlowRelationship(
+        service.create_taint_flow_relationship(TaintFlowRelationship(
             source_qualified_name="com.example.UserController.getUserInput",
             sink_qualified_name="com.example.UserController.executeQuery",
             risk=RiskLevel.HIGH,
             vulnerability_type="SQL_INJECTION"
-        )
-        graph_db.create_taint_flow_relationship(taint_flow)
+        ))
 
-        # 查找危险路径
-        vulnerable_paths = graph_db.find_vulnerable_paths("executeQuery")
+        vulnerable_paths = service.find_vulnerable_paths("executeQuery")
         print(f"✓ 发现 {len(vulnerable_paths)} 条危险路径")
 
-        # 7. 使用原生 Cypher 查询
+        # 6. 原生 Cypher 查询（通过 DB 层逃生舱口）
         print("\n=== Cypher 查询演示 ===")
 
         results = graph_db.execute_cypher("""
@@ -127,7 +112,6 @@ def quick_start_example():
         print("\n=== 快速入门完成 ===")
 
     finally:
-        # 8. 关闭连接
         graph_db.close()
         print("\n✓ 数据库连接已关闭")
 

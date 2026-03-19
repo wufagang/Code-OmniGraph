@@ -62,7 +62,7 @@ def run_quick_start():
     print("✓ neo4j 驱动已安装\n")
 
     # 运行示例
-    script_path = core_dir / "example" / "cagr_processor" / "graph_builder" / "quick_start.py"
+    script_path = core_dir / "example" / "cagr_processor" / "graph_dao" / "quick_start.py"
 
     try:
         # 使用 subprocess 运行脚本，确保正确的环境
@@ -104,7 +104,7 @@ def run_full_example():
     print("✓ neo4j 驱动已安装\n")
 
     # 运行示例
-    script_path = core_dir / "example" / "cagr_processor" / "graph_builder" / "neo4j_usage_example.py"
+    script_path = core_dir / "example" / "cagr_processor" / "graph_dao" / "neo4j_usage_example.py"
 
     try:
         # 使用 subprocess 运行脚本

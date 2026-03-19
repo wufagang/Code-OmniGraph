@@ -21,13 +21,13 @@ sys.path.insert(0, str(project_root))
 
 # 尝试导入模块
 try:
-    from core.cagr_processor.graph_builder.config import GraphDBConfig
+    from core.cagr_processor.graph_dao.config import GraphDBConfig
     print("✓ 成功导入 GraphDBConfig")
 
-    from core.cagr_processor.graph_builder.factory import GraphDBFactory
+    from core.cagr_processor.graph_dao.factory import GraphDBFactory
     print("✓ 成功导入 GraphDBFactory")
 
-    from core.cagr_processor.graph_builder.models import ProjectNode
+    from core.cagr_processor.graph_dao.models import ProjectNode
     print("✓ 成功导入 ProjectNode")
 
     # 测试创建配置

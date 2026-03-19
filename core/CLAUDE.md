@@ -29,7 +29,7 @@ python run_tests.py
 
 # 运行特定模块测试
 python -m pytest tests/cagr_processor/embedding_worker/ -v
-python -m pytest tests/cagr_processor/graph_builder/ -v
+python -m pytest tests/cagr_processor/graph_dao/ -v
 python -m pytest tests/collector/ -v
 python -m pytest tests/server/ -v
 
@@ -62,7 +62,7 @@ mypy core/cagr_processor/core/cagr_server/ --ignore-missing-imports
 - `context_scraper/git_scraper.py`：Git 历史和 Jira 集成
 
 ### `/core/cagr_processor/` - 数据处理
-- `graph_builder/`：Neo4j 图数据库抽象层
+- `graph_dao/`：Neo4j 图数据库抽象层
   - `interfaces.py`：GraphDatabase 抽象接口
   - `impl/neo4j_impl.py`：带 Cypher 查询的 Neo4j 实现
   - `models.py`：领域模型（NodeLabel、RelType、FunctionNode 等）
@@ -86,7 +86,7 @@ mypy core/cagr_processor/core/cagr_server/ --ignore-missing-imports
 - 测试框架使用 pytest，统一放在 tests/ 目录下
 - 测试目录结构：
   - `tests/cagr_processor/embedding_worker/` - 向量数据库测试
-  - `tests/cagr_processor/graph_builder/` - 图数据库测试
+  - `tests/cagr_processor/graph_dao/` - 图数据库测试
   - `tests/collector/` - 数据收集器测试
   - `tests/server/` - API 服务测试
 
@@ -146,7 +146,7 @@ REDIS_URL=redis://localhost:6379/0
 ## 常见开发任务
 
 ### 添加新的图数据库后端
-1. 在 `/graph_builder/impl/` 中创建实现
+1. 在 `/graph_dao/impl/` 中创建实现
 2. 继承自 `BaseGraphDatabase`
 3. 实现 `GraphDatabase` 的所有抽象方法
 4. 在 `GraphDBFactory._registry` 中注册
@@ -159,7 +159,7 @@ REDIS_URL=redis://localhost:6379/0
 4. 按照现有模式创建测试
 
 ### 修改图模式
-1. 更新 `/graph_builder/models.py` 中的模型
+1. 更新 `/graph_dao/models.py` 中的模型
 2. 更新实现中的 Cypher 查询
 3. 如需要，添加迁移脚本
 4. 用新模式更新测试

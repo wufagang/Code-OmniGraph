@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """
 Code-OmniGraph Neo4j 图数据库使用示例
-展示如何调用 cagr_processor/graph_builder 模块的所有功能
+展示如何调用 cagr_processor/graph_dao 模块的所有功能
 """
 
 import os
@@ -13,9 +13,9 @@ current_file = os.path.abspath(__file__)
 core_dir = os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(current_file))))
 sys.path.insert(0, core_dir)
 
-from cagr_processor.graph_builder.config import GraphDBConfig
-from cagr_processor.graph_builder.factory import GraphDBFactory
-from cagr_processor.graph_builder.models import (
+from cagr_processor.graph_dao.config import GraphDBConfig
+from cagr_processor.graph_dao.factory import GraphDBFactory
+from cagr_processor.graph_dao.models import (
     ProjectNode, FileNode, ClassNode, FunctionNode, VariableNode,
     CallRelationship, TaintFlowRelationship, DataAccessRelationship,
     NodeLabel, RelType, RiskLevel

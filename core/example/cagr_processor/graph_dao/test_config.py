@@ -8,7 +8,7 @@ import sys
 # 添加项目路径
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..', '..')))
 
-from cagr_processor.graph_builder import GraphDBConfig, Neo4jConfig
+from cagr_processor.graph_dao import GraphDBConfig, Neo4jConfig
 
 
 
@@ -81,7 +81,7 @@ def main():
 
         print("\nUsage Example:")
         print("```python")
-        print("from cagr_processor.graph_builder import create_graph_db, GraphDBConfig")
+        print("from cagr_processor.graph_dao import create_graph_db, GraphDBConfig")
         print("")
         print("# For Mock database (no installation required)")
         print("config = GraphDBConfig(db_type='mock')")

@@ -14,7 +14,7 @@ tests/
 │   │   ├── test_factory.py       # 工厂模式测试
 │   │   ├── test_models.py        # 模型测试
 │   │   └── test_qdrant_impl.py   # Qdrant 实现测试
-│   └── graph_builder/             # 图数据库模块测试
+│   └── graph_dao/             # 图数据库模块测试
 │       └── test_neo4j_impl.py     # Neo4j 实现测试
 ├── collector/                     # 数据收集模块测试
 │   └── test_tree_sitter_parser.py  # Tree-sitter 解析器测试
@@ -47,7 +47,7 @@ python run_tests.py
 python -m pytest tests/cagr_processor/embedding_worker/ -v
 
 # 运行图数据库测试
-python -m pytest tests/cagr_processor/graph_builder/ -v
+python -m pytest tests/cagr_processor/graph_dao/ -v
 
 # 运行数据收集器测试
 python -m pytest tests/collector/ -v
@@ -69,7 +69,7 @@ pytest --cov=core tests/
 当前测试覆盖率：
 
 - **cagr_processor/embedding_worker**: 95%+ 覆盖率
-- **cagr_processor/graph_builder**: 90%+ 覆盖率（Neo4jDatabase 为抽象类，使用 mock 测试）
+- **cagr_processor/graph_dao**: 90%+ 覆盖率（Neo4jDatabase 为抽象类，使用 mock 测试）
 - **collector**: 由于 tree-sitter 依赖，部分测试需要外部库
 - **server**: 基础测试覆盖
 

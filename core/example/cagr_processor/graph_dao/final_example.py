@@ -23,20 +23,20 @@ try:
     from cagr_common.exceptions import GraphConnectionException
 
     # 导入配置模块
-    from cagr_processor.graph_builder.config import GraphDBConfig, Neo4jConfig
+    from cagr_processor.graph_dao.config import GraphDBConfig, Neo4jConfig
 
     # 导入模型
-    from cagr_processor.graph_builder.models import (
+    from cagr_processor.graph_dao.models import (
         ProjectNode, FileNode, ClassNode, FunctionNode,
         CallRelationship, TaintFlowRelationship, DataAccessRelationship,
         NodeLabel, RelType, RiskLevel, GraphStats, SubGraph
     )
 
     # 导入工厂
-    from cagr_processor.graph_builder.factory import GraphDBFactory
+    from cagr_processor.graph_dao.factory import GraphDBFactory
 
     # 导入 Neo4j 实现
-    from cagr_processor.graph_builder.impl.neo4j_impl import Neo4jDatabase
+    from cagr_processor.graph_dao.impl.neo4j_impl import Neo4jDatabase
 
     print("✓ 所有模块导入成功")
 

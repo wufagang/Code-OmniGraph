@@ -1,4 +1,4 @@
-"""Neo4j图数据库实现"""
+"""Neo4j图数据库完整实现 - 包含所有抽象方法"""
 
 import logging
 from typing import List, Optional, Dict, Any, Union
@@ -58,353 +58,307 @@ class Neo4jDatabase(BaseGraphDatabase):
             self._driver = None
             self.logger.info("Neo4j database connection closed")
 
-    def create_project(self, project: ProjectNode) -> bool:
-        """创建项目节点"""
+    def _ensure_connected(self):
+        """确保数据库已连接"""
+        if not self._driver:
+            raise GraphConnectionException("Database is not connected. Please call connect() first.")
+
+    # 事务管理方法
+    def begin_transaction(self):
+        """开始事务"""
+        self._ensure_connected()
+        return self._driver.session()
+
+    def commit(self, tx):
+        """提交事务"""
+        if hasattr(tx, 'commit'):
+            tx.commit()
+
+    def rollback(self, tx):
+        """回滚事务"""
+        if hasattr(tx, 'rollback'):
+            tx.rollback()
+
+    def clear_graph(self):
+        """清空整个图谱（谨慎使用）"""
+        self._ensure_connected()
+        query = "MATCH (n) DETACH DELETE n"
+        try:
+            with self._driver.session() as session:
+                session.run(query)
+            self.logger.warning("Graph has been cleared!")
+        except Exception as e:
+            self.logger.error(f"Failed to clear graph: {e}")
+            raise GraphQueryException(f"Failed to clear graph: {e}")
+
+    # 查询方法实现
+    def find_function_by_name(self, name: str) -> Optional[FunctionNode]:
+        """根据函数名查找函数节点"""
         self._ensure_connected()
 
         query = """
-        MERGE (p:Project {name: $name})
-        SET p.version = $version,
-            p.description = $description,
-            p.language = $language,
-            p.created_at = datetime()
-        RETURN p
+        MATCH (f:Function {name: $name})
+        RETURN f
+        LIMIT 1
         """
 
         try:
             with self._driver.session() as session:
-                session.run(query, {
-                    "name": project.name,
-                    "version": project.version or "",
-                    "description": project.description or "",
-                    "language": project.language or ""
-                })
-            self.logger.info(f"Project '{project.name}' created/updated successfully")
-            return True
+                result = session.run(query, {"name": name})
+                record = result.single()
+                if record:
+                    node_data = dict(record["f"])
+                    return FunctionNode(**node_data)
+                return None
         except Exception as e:
-            self.logger.error(f"Failed to create project '{project.name}': {e}")
-            raise GraphQueryException(f"Failed to create project: {e}")
+            self.logger.error(f"Failed to find function by name '{name}': {e}")
+            raise GraphQueryException(f"Failed to find function: {e}")
+
+    def get_call_chain(self, function_qualified_name: str, depth: int = 3) -> List[Dict[str, Any]]:
+        """获取函数调用链"""
+        self._ensure_connected()
+
+        query = """
+        MATCH path = (start:Function {qualified_name: $qualified_name})-[:CALLS*..%d]->(end:Function)
+        RETURN [n in nodes(path) | {
+            qualified_name: n.qualified_name,
+            name: n.name,
+            signature: n.signature
+        }] as chain
+        """ % depth
+
+        try:
+            with self._driver.session() as session:
+                result = session.run(query, {"qualified_name": function_qualified_name})
+                chains = []
+                for record in result:
+                    chains.append(record["chain"])
+                return chains
+        except Exception as e:
+            self.logger.error(f"Failed to get call chain for '{function_qualified_name}': {e}")
+            raise GraphQueryException(f"Failed to get call chain: {e}")
+
+    def get_upstream_callers(self, function_qualified_name: str, depth: int = 1) -> List[Dict[str, Any]]:
+        """获取上游调用者"""
+        self._ensure_connected()
+
+        query = """
+        MATCH path = (caller:Function)-[:CALLS*..%d]->(target:Function {qualified_name: $qualified_name})
+        RETURN DISTINCT {
+            qualified_name: caller.qualified_name,
+            name: caller.name,
+            signature: caller.signature
+        } as caller
+        """ % depth
+
+        try:
+            with self._driver.session() as session:
+                result = session.run(query, {"qualified_name": function_qualified_name})
+                callers = []
+                for record in result:
+                    callers.append(record["caller"])
+                return callers
+        except Exception as e:
+            self.logger.error(f"Failed to get upstream callers for '{function_qualified_name}': {e}")
+            raise GraphQueryException(f"Failed to get upstream callers: {e}")
+
+    def get_downstream_callees(self, function_qualified_name: str, depth: int = 1) -> List[Dict[str, Any]]:
+        """获取下游被调用者"""
+        self._ensure_connected()
+
+        query = """
+        MATCH path = (caller:Function {qualified_name: $qualified_name})-[:CALLS*..%d]->(callee:Function)
+        RETURN DISTINCT {
+            qualified_name: callee.qualified_name,
+            name: callee.name,
+            signature: callee.signature
+        } as callee
+        """ % depth
+
+        try:
+            with self._driver.session() as session:
+                result = session.run(query, {"qualified_name": function_qualified_name})
+                callees = []
+                for record in result:
+                    callees.append(record["callee"])
+                return callees
+        except Exception as e:
+            self.logger.error(f"Failed to get downstream callees for '{function_qualified_name}': {e}")
+            raise GraphQueryException(f"Failed to get downstream callees: {e}")
+
+    def get_graph_stats(self) -> GraphStats:
+        """获取图谱统计信息"""
+        self._ensure_connected()
+
+        queries = {
+            "total_nodes": "MATCH (n) RETURN count(n) as count",
+            "total_relationships": "MATCH ()-[r]->() RETURN count(r) as count",
+            "projects": "MATCH (n:Project) RETURN count(n) as count",
+            "files": "MATCH (n:File) RETURN count(n) as count",
+            "classes": "MATCH (n:Class) RETURN count(n) as count",
+            "functions": "MATCH (n:Function) RETURN count(n) as count",
+            "variables": "MATCH (n:Variable) RETURN count(n) as count"
+        }
+
+        try:
+            stats = GraphStats()
+            with self._driver.session() as session:
+                # 总节点数
+                result = session.run(queries["total_nodes"])
+                stats.total_nodes = result.single()["count"]
+
+                # 总关系数
+                result = session.run(queries["total_relationships"])
+                stats.total_relationships = result.single()["count"]
+
+                # 各类节点统计
+                stats.node_counts = {}
+                for node_type, query in queries.items():
+                    if node_type not in ["total_nodes", "total_relationships"]:
+                        result = session.run(query)
+                        count = result.single()["count"]
+                        stats.node_counts[node_type] = count
+
+            return stats
+        except Exception as e:
+            self.logger.error(f"Failed to get graph stats: {e}")
+            raise GraphQueryException(f"Failed to get graph stats: {e}")
+
+    def find_vulnerable_paths(self, sink_function_name: str) -> List[List[Dict[str, Any]]]:
+        """查找到达危险函数的所有路径"""
+        self._ensure_connected()
+
+        query = """
+        MATCH path = (start:Function)-[:CALLS*]->(sink:Function {name: $sink_function_name})
+        WHERE start <> sink
+        RETURN [n in nodes(path) | {
+            qualified_name: n.qualified_name,
+            name: n.name
+        }] as path
+        """
+
+        try:
+            with self._driver.session() as session:
+                result = session.run(query, {"sink_function_name": sink_function_name})
+                paths = []
+                for record in result:
+                    paths.append(record["path"])
+                return paths
+        except Exception as e:
+            self.logger.error(f"Failed to find vulnerable paths to '{sink_function_name}': {e}")
+            raise GraphQueryException(f"Failed to find vulnerable paths: {e}")
+
+    # 重用已有的方法实现
+    def create_project(self, project: ProjectNode) -> bool:
+        """创建项目节点"""
+        return super().create_project(project)
 
     def create_file(self, file: FileNode) -> bool:
         """创建文件节点"""
-        self._ensure_connected()
-
-        query = """
-        MERGE (f:File {path: $path})
-        SET f.name = $name,
-            f.language = $language,
-            f.size = $size,
-            f.last_modified = $last_modified,
-            f.content = $content
-        WITH f
-        MATCH (p:Project {name: $project_name})
-        MERGE (p)-[:CONTAINS]->(f)
-        RETURN f
-        """
-
-        try:
-            with self._driver.session() as session:
-                session.run(query, {
-                    "path": file.path,
-                    "name": file.name,
-                    "language": file.language,
-                    "size": file.size or 0,
-                    "last_modified": file.last_modified or "",
-                    "content": file.content or "",
-                    "project_name": file.project_name or "default"
-                })
-            self.logger.info(f"File '{file.path}' created/updated successfully")
-            return True
-        except Exception as e:
-            self.logger.error(f"Failed to create file '{file.path}': {e}")
-            raise GraphQueryException(f"Failed to create file: {e}")
+        return super().create_file(file)
 
     def create_class(self, class_node: ClassNode) -> bool:
         """创建类节点"""
-        self._ensure_connected()
-
-        query = """
-        MERGE (c:Class {qualified_name: $qualified_name})
-        SET c.name = $name,
-            c.package = $package,
-            c.modifiers = $modifiers,
-            c.superclass = $superclass,
-            c.interfaces = $interfaces,
-            c.is_abstract = $is_abstract,
-            c.is_final = $is_final,
-            c.is_interface = $is_interface,
-            c.is_enum = $is_enum,
-            c.docstring = $docstring,
-            c.source_code = $source_code,
-            c.lines_of_code = $lines_of_code
-        WITH c
-        MATCH (f:File {path: $file_path})
-        MERGE (f)-[:DEFINES]->(c)
-        RETURN c
-        """
-
-        try:
-            with self._driver.session() as session:
-                session.run(query, {
-                    "qualified_name": class_node.qualified_name,
-                    "name": class_node.name,
-                    "package": class_node.package or "",
-                    "modifiers": class_node.modifiers or [],
-                    "superclass": class_node.superclass or "",
-                    "interfaces": class_node.interfaces or [],
-                    "is_abstract": class_node.is_abstract or False,
-                    "is_final": class_node.is_final or False,
-                    "is_interface": class_node.is_interface or False,
-                    "is_enum": class_node.is_enum or False,
-                    "docstring": class_node.docstring or "",
-                    "source_code": class_node.source_code or "",
-                    "lines_of_code": class_node.lines_of_code or 0,
-                    "file_path": class_node.file_path or ""
-                })
-            self.logger.info(f"Class '{class_node.qualified_name}' created/updated successfully")
-            return True
-        except Exception as e:
-            self.logger.error(f"Failed to create class '{class_node.qualified_name}': {e}")
-            raise GraphQueryException(f"Failed to create class: {e}")
+        return super().create_class(class_node)
 
     def create_function(self, function: FunctionNode) -> bool:
         """创建函数节点"""
+        return super().create_function(function)
+
+    def create_variable(self, variable: VariableNode) -> bool:
+        """创建变量节点"""
+        return super().create_variable(variable)
+
+    def create_project_contains_file(self, project_name: str, file_path: str) -> bool:
+        """创建 Project-[:CONTAINS]->File 关系"""
+        return super().create_project_contains_file(project_name, file_path)
+
+    def create_file_defines_class(self, file_path: str, class_qualified_name: str) -> bool:
+        """创建 File-[:DEFINES]->Class 关系"""
+        return super().create_file_defines_class(file_path, class_qualified_name)
+
+    def create_file_defines_function(self, file_path: str, function_qualified_name: str) -> bool:
+        """创建 File-[:DEFINES]->Function 关系"""
+        return super().create_file_defines_function(file_path, function_qualified_name)
+
+    def create_class_has_method(self, class_qualified_name: str, method_qualified_name: str) -> bool:
+        """创建 Class-[:HAS_METHOD]->Function 关系"""
+        return super().create_class_has_method(class_qualified_name, method_qualified_name)
+
+    def create_calls_relationship(self, call: CallRelationship) -> bool:
+        """创建 Function-[:CALLS]->Function 关系"""
+        return super().create_calls_relationship(call)
+
+    def create_data_access_relationship(self, access: DataAccessRelationship) -> bool:
+        """创建 Function-[:READS|:WRITES]->Variable 关系"""
+        return super().create_data_access_relationship(access)
+
+    def create_taint_flow_relationship(self, taint: TaintFlowRelationship) -> bool:
+        """创建 Function-[:TAINT_FLOW_TO]->Function 关系"""
+        return super().create_taint_flow_relationship(taint)
+
+    def find_function_by_qualified_name(self, qualified_name: str) -> Optional[FunctionNode]:
+        """根据全限定名查找函数节点"""
+        return super().find_function_by_qualified_name(qualified_name)
+
+    def find_taint_flows(self, source_function: Optional[str] = None,
+                        sink_function: Optional[str] = None,
+                        risk_level: Optional[str] = None, limit: int = 100) -> List[TaintFlowRelationship]:
+        """查找污点流"""
+        return super().find_taint_flows(source_function, sink_function, risk_level, limit)
+
+    def get_subgraph_for_function(self, function_qualified_name: str, depth: int = 2) -> SubGraph:
+        """获取函数子图"""
+        return super().get_subgraph_for_function(function_qualified_name, depth)
+
+    def execute_cypher(self, query: str, parameters: Optional[Dict[str, Any]] = None) -> List[Dict[str, Any]]:
+        """执行原生 Cypher 查询"""
+        return super().execute_cypher(query, parameters)
+
+    # 子类必须实现的抽象方法
+    def _create_node_impl(self, label: str, unique_key: str, properties: Dict[str, Any]) -> bool:
+        """创建节点的具体实现"""
         self._ensure_connected()
 
-        query = """
-        MERGE (f:Function {qualified_name: $qualified_name})
-        SET f.name = $name,
-            f.signature = $signature,
-            f.parameters = $parameters,
-            f.return_type = $return_type,
-            f.modifiers = $modifiers,
-            f.is_constructor = $is_constructor,
-            f.is_static = $is_static,
-            f.is_abstract = $is_abstract,
-            f.is_final = $is_final,
-            f.is_synchronized = $is_synchronized,
-            f.is_native = $is_native,
-            f.is_endpoint = $is_endpoint,
-            f.body = $body,
-            f.docstring = $docstring,
-            f.source_code = $source_code,
-            f.lines_of_code = $lines_of_code,
-            f.cyclomatic_complexity = $cyclomatic_complexity,
-            f.start_line = $start_line,
-            f.end_line = $end_line
-        WITH f
-        MATCH (c:Class {qualified_name: $class_name})
-        MERGE (c)-[:DECLARES]->(f)
-        RETURN f
+        query = f"""
+        MERGE (n:{label} {{{unique_key}: ${unique_key}}})
+        SET n += $properties
+        RETURN n
         """
 
         try:
             with self._driver.session() as session:
-                session.run(query, {
-                    "qualified_name": function.qualified_name,
-                    "name": function.name,
-                    "signature": function.signature or "",
-                    "parameters": function.parameters or [],
-                    "return_type": function.return_type or "",
-                    "modifiers": function.modifiers or [],
-                    "is_constructor": function.is_constructor or False,
-                    "is_static": function.is_static or False,
-                    "is_abstract": function.is_abstract or False,
-                    "is_final": function.is_final or False,
-                    "is_synchronized": function.is_synchronized or False,
-                    "is_native": function.is_native or False,
-                    "is_endpoint": function.is_endpoint or False,
-                    "body": function.body or "",
-                    "docstring": function.docstring or "",
-                    "source_code": function.source_code or "",
-                    "lines_of_code": function.lines_of_code or 0,
-                    "cyclomatic_complexity": function.cyclomatic_complexity or 0,
-                    "start_line": function.start_line or 0,
-                    "end_line": function.end_line or 0,
-                    "class_name": function.class_name or ""
-                })
-            self.logger.info(f"Function '{function.qualified_name}' created/updated successfully")
-            return True
+                parameters = {unique_key: properties.get(unique_key), "properties": properties}
+                result = session.run(query, parameters)
+                return result.single() is not None
         except Exception as e:
-            self.logger.error(f"Failed to create function '{function.qualified_name}': {e}")
-            raise GraphQueryException(f"Failed to create function: {e}")
+            self.logger.error(f"Failed to create node {label}: {e}")
+            raise GraphQueryException(f"Failed to create node: {e}")
 
-    def create_calls_relationship(self, call: CallRelationship) -> bool:
-        """创建调用关系"""
+    def _create_relationship_impl(self,
+                                 start_label: str, start_key: str, start_value: str,
+                                 end_label: str, end_key: str, end_value: str,
+                                 rel_type: str, properties: Dict[str, Any]) -> bool:
+        """创建关系的具体实现"""
         self._ensure_connected()
 
-        query = """
-        MATCH (caller:Function {qualified_name: $caller_qualified_name})
-        MATCH (callee:Function {qualified_name: $callee_qualified_name})
-        MERGE (caller)-[r:CALLS {
-            call_site_line: $call_site_line,
-            call_site_column: $call_site_column,
-            call_type: $call_type,
-            created_at: datetime()
-        }]->(callee)
+        query = f"""
+        MATCH (a:{start_label} {{{start_key}: ${start_key}}})
+        MATCH (b:{end_label} {{{end_key}: ${end_key}}})
+        MERGE (a)-[r:{rel_type}]->(b)
+        SET r += $properties
         RETURN r
         """
 
         try:
             with self._driver.session() as session:
-                result = session.run(query, {
-                    "caller_qualified_name": call.caller_qualified_name,
-                    "callee_qualified_name": call.callee_qualified_name,
-                    "call_site_line": call.call_site_line or 0,
-                    "call_site_column": call.call_site_column or 0,
-                    "call_type": call.call_type or "regular"
-                })
-                if result.single():
-                    self.logger.info(f"Call relationship created: {call.caller_qualified_name} -> {call.callee_qualified_name}")
-                    return True
-                else:
-                    raise GraphRelationshipNotFoundException("Failed to create call relationship")
-        except Exception as e:
-            self.logger.error(f"Failed to create call relationship: {e}")
-            raise GraphQueryException(f"Failed to create call relationship: {e}")
-
-    def find_function_by_qualified_name(self, qualified_name: str) -> Optional[FunctionNode]:
-        """根据全限定名查找函数"""
-        self._ensure_connected()
-
-        query = """
-        MATCH (f:Function {qualified_name: $qualified_name})
-        RETURN f
-        """
-
-        try:
-            with self._driver.session() as session:
-                result = session.run(query, {"qualified_name": qualified_name})
-                record = result.single()
-                if record:
-                    node_data = record["f"]
-                    return FunctionNode(**node_data)
-                else:
-                    return None
-        except Exception as e:
-            self.logger.error(f"Failed to find function '{qualified_name}': {e}")
-            raise GraphQueryException(f"Failed to find function: {e}")
-
-    def find_taint_flows(self, risk_level: Optional[str] = None,
-                        vulnerability_type: Optional[str] = None) -> List[TaintFlowRelationship]:
-        """查找污点流"""
-        self._ensure_connected()
-
-        query = """
-        MATCH (source)-[r:TAINT_FLOW]->(sink)
-        WHERE ($risk_level IS NULL OR r.risk = $risk_level)
-          AND ($vulnerability_type IS NULL OR r.vulnerability_type = $vulnerability_type)
-        RETURN source, r, sink
-        """
-
-        try:
-            with self._driver.session() as session:
-                result = session.run(query, {
-                    "risk_level": risk_level,
-                    "vulnerability_type": vulnerability_type
-                })
-
-                flows = []
-                for record in result:
-                    flow = TaintFlowRelationship(
-                        source_qualified_name=record["source"]["qualified_name"],
-                        sink_qualified_name=record["sink"]["qualified_name"],
-                        risk=RiskLevel(record["r"]["risk"]),
-                        vulnerability_type=record["r"]["vulnerability_type"],
-                        data_type=record["r"].get("data_type"),
-                        source_line=record["r"].get("source_line"),
-                        sink_line=record["r"].get("sink_line")
-                    )
-                    flows.append(flow)
-
-                return flows
-        except Exception as e:
-            self.logger.error(f"Failed to find taint flows: {e}")
-            raise GraphQueryException(f"Failed to find taint flows: {e}")
-
-    def get_subgraph_for_function(self, qualified_name: str) -> Dict[str, Any]:
-        """获取函数子图"""
-        self._ensure_connected()
-
-        # 获取中心节点
-        center_query = """
-        MATCH (f:Function {qualified_name: $qualified_name})
-        RETURN f
-        """
-
-        # 获取上游调用（调用当前函数的函数）
-        upstream_query = """
-        MATCH (caller:Function)-[:CALLS]->(f:Function {qualified_name: $qualified_name})
-        RETURN caller
-        """
-
-        # 获取下游调用（当前函数调用的函数）
-        downstream_query = """
-        MATCH (f:Function {qualified_name: $qualified_name})-[:CALLS]->(callee:Function)
-        RETURN callee
-        """
-
-        # 获取相关污点流
-        taint_query = """
-        MATCH (source)-[r:TAINT_FLOW]->(sink)
-        WHERE source.qualified_name = $qualified_name OR sink.qualified_name = $qualified_name
-        RETURN source, r, sink
-        """
-
-        try:
-            with self._driver.session() as session:
-                # 获取中心节点
-                center_result = session.run(center_query, {"qualified_name": qualified_name})
-                center_record = center_result.single()
-
-                if not center_record:
-                    raise GraphNodeNotFoundException(f"Function '{qualified_name}' not found")
-
-                center_node = dict(center_record["f"])
-
-                # 获取上游
-                upstream_result = session.run(upstream_query, {"qualified_name": qualified_name})
-                upstream_nodes = [dict(record["caller"]) for record in upstream_result]
-
-                # 获取下游
-                downstream_result = session.run(downstream_query, {"qualified_name": qualified_name})
-                downstream_nodes = [dict(record["callee"]) for record in downstream_result]
-
-                # 获取污点流
-                taint_result = session.run(taint_query, {"qualified_name": qualified_name})
-                taint_flows = []
-                for record in taint_result:
-                    taint_flows.append({
-                        "source": dict(record["source"]),
-                        "relationship": dict(record["r"]),
-                        "sink": dict(record["sink"])
-                    })
-
-                return {
-                    "center_node": center_node,
-                    "upstream_nodes": upstream_nodes,
-                    "downstream_nodes": downstream_nodes,
-                    "taint_flows": taint_flows
+                parameters = {
+                    start_key: start_value,
+                    end_key: end_value,
+                    "properties": properties
                 }
-        except GraphNodeNotFoundException:
-            raise
+                result = session.run(query, parameters)
+                return result.single() is not None
         except Exception as e:
-            self.logger.error(f"Failed to get subgraph for function '{qualified_name}': {e}")
-            raise GraphQueryException(f"Failed to get subgraph: {e}")
-
-    def execute_cypher(self, query: str, parameters: Optional[Dict[str, Any]] = None) -> List[Dict[str, Any]]:
-        """执行原生Cypher查询"""
-        self._ensure_connected()
-
-        try:
-            with self._driver.session() as session:
-                result = session.run(query, parameters or {})
-                return [dict(record) for record in result]
-        except Exception as e:
-            self.logger.error(f"Failed to execute Cypher query: {e}")
-            raise GraphQueryException(f"Failed to execute Cypher query: {e}")
-
-    def _ensure_connected(self):
-        """确保数据库已连接"""
-        if not self._driver:
-            raise GraphConnectionException("Database is not connected. Please call connect() first.")
+            self.logger.error(f"Failed to create relationship {rel_type}: {e}")
+            raise GraphQueryException(f"Failed to create relationship: {e}")

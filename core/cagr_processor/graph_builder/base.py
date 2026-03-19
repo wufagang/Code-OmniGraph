@@ -59,7 +59,7 @@ class BaseGraphDatabase(GraphDatabase, ABC):
         self._transaction_stack = []  # 事务栈
 
     def _validate_connection(self):
-        """验证连接状态"""
+        """验证连接状态，子类可重写以适配不同的连接对象"""
         if not self._connection:
             raise GraphConnectionException("Database connection is not established")
 

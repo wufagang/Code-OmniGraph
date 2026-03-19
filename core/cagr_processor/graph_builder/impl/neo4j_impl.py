@@ -22,6 +22,36 @@ from cagr_common.exceptions import (
 )
 
 
+class _Neo4jTransaction:
+    """持有 session 和 transaction，确保 session 在事务结束后正确关闭"""
+
+    def __init__(self, session, tx):
+        self._session = session
+        self._tx = tx
+
+    def commit(self):
+        try:
+            self._tx.commit()
+        finally:
+            self._session.close()
+
+    def rollback(self):
+        try:
+            self._tx.rollback()
+        finally:
+            self._session.close()
+
+    def __enter__(self):
+        return self
+
+    def __exit__(self, exc_type, exc_val, exc_tb):
+        if exc_type:
+            self.rollback()
+        else:
+            self.commit()
+        return False
+
+
 class Neo4jDatabase(BaseGraphDatabase):
     """Neo4j图数据库实现"""
 
@@ -63,20 +93,34 @@ class Neo4jDatabase(BaseGraphDatabase):
         if not self._driver:
             raise GraphConnectionException("Database is not connected. Please call connect() first.")
 
+    def _validate_connection(self):
+        """重写基类验证方法，检查 Neo4j driver 而非 _connection"""
+        self._ensure_connected()
+
     # 事务管理方法
     def begin_transaction(self):
-        """开始事务"""
+        """开始事务，返回 _Neo4jTransaction 包装对象"""
         self._ensure_connected()
-        return self._driver.session()
+        session = self._driver.session()
+        try:
+            tx = session.begin_transaction()
+            return _Neo4jTransaction(session, tx)
+        except Exception:
+            session.close()
+            raise
 
-    def commit(self, tx):
+    def commit(self, tx) -> None:
         """提交事务"""
-        if hasattr(tx, 'commit'):
+        if isinstance(tx, _Neo4jTransaction):
+            tx.commit()
+        elif hasattr(tx, 'commit'):
             tx.commit()
 
-    def rollback(self, tx):
+    def rollback(self, tx) -> None:
         """回滚事务"""
-        if hasattr(tx, 'rollback'):
+        if isinstance(tx, _Neo4jTransaction):
+            tx.rollback()
+        elif hasattr(tx, 'rollback'):
             tx.rollback()
 
     def clear_graph(self):
@@ -299,29 +343,139 @@ class Neo4jDatabase(BaseGraphDatabase):
 
     def find_function_by_qualified_name(self, qualified_name: str) -> Optional[FunctionNode]:
         """根据全限定名查找函数节点"""
-        return super().find_function_by_qualified_name(qualified_name)
+        self._ensure_connected()
+
+        query = """
+        MATCH (f:Function {qualified_name: $qualified_name})
+        RETURN f
+        LIMIT 1
+        """
+
+        try:
+            with self._driver.session() as session:
+                result = session.run(query, {"qualified_name": qualified_name})
+                record = result.single()
+                if record:
+                    known_fields = {f.name for f in FunctionNode.__dataclass_fields__.values()}
+                    node_data = {k: v for k, v in dict(record["f"]).items() if k in known_fields}
+                    return FunctionNode(**node_data)
+                return None
+        except Exception as e:
+            self.logger.error(f"Failed to find function by qualified name '{qualified_name}': {e}")
+            raise GraphQueryException(f"Failed to find function: {e}")
 
     def find_taint_flows(self, source_function: Optional[str] = None,
                         sink_function: Optional[str] = None,
                         risk_level: Optional[str] = None, limit: int = 100) -> List[TaintFlowRelationship]:
         """查找污点流"""
-        return super().find_taint_flows(source_function, sink_function, risk_level, limit)
+        self._ensure_connected()
+
+        conditions = []
+        params: Dict[str, Any] = {"limit": limit}
+        if source_function:
+            conditions.append("src.qualified_name = $source_function")
+            params["source_function"] = source_function
+        if sink_function:
+            conditions.append("snk.qualified_name = $sink_function")
+            params["sink_function"] = sink_function
+        if risk_level:
+            conditions.append("r.risk = $risk_level")
+            params["risk_level"] = risk_level
+
+        where_clause = f"WHERE {' AND '.join(conditions)}" if conditions else ""
+        query = f"""
+        MATCH (src:Function)-[r:TAINT_FLOW_TO]->(snk:Function)
+        {where_clause}
+        RETURN src.qualified_name AS source, snk.qualified_name AS sink,
+               r.risk AS risk, r.vulnerability_type AS vulnerability_type,
+               r.taint_path AS taint_path, r.description AS description
+        LIMIT $limit
+        """
+
+        try:
+            with self._driver.session() as session:
+                result = session.run(query, params)
+                flows = []
+                for record in result:
+                    flows.append(TaintFlowRelationship(
+                        source_qualified_name=record["source"],
+                        sink_qualified_name=record["sink"],
+                        risk=record["risk"] or RiskLevel.HIGH,
+                        vulnerability_type=record["vulnerability_type"],
+                        taint_path=record["taint_path"],
+                        description=record["description"],
+                    ))
+                return flows
+        except Exception as e:
+            self.logger.error(f"Failed to find taint flows: {e}")
+            raise GraphQueryException(f"Failed to find taint flows: {e}")
 
     def get_subgraph_for_function(self, function_qualified_name: str, depth: int = 2) -> SubGraph:
-        """获取函数子图"""
-        return super().get_subgraph_for_function(function_qualified_name, depth)
+        """获取函数子图（用于 LLM 上下文）"""
+        self._ensure_connected()
+
+        try:
+            center_node_data = {}
+            fn = self.find_function_by_qualified_name(function_qualified_name)
+            if fn:
+                center_node_data = {
+                    "qualified_name": fn.qualified_name,
+                    "name": fn.name,
+                    "signature": fn.signature,
+                    "body": fn.body,
+                    "file_path": fn.file_path,
+                }
+
+            upstream = self.get_upstream_callers(function_qualified_name, depth)
+            downstream = self.get_downstream_callees(function_qualified_name, depth)
+            taint_flows = self.find_taint_flows(source_function=function_qualified_name)
+            taint_data = [
+                {"source": tf.source_qualified_name, "sink": tf.sink_qualified_name, "risk": tf.risk}
+                for tf in taint_flows
+            ]
+
+            # 查找相关变量
+            var_query = """
+            MATCH (f:Function {qualified_name: $qualified_name})-[:READS|WRITES]->(v:Variable)
+            RETURN DISTINCT v.qualified_name AS qualified_name, v.name AS name, v.var_type AS var_type
+            """
+            related_vars = []
+            with self._driver.session() as session:
+                result = session.run(var_query, {"qualified_name": function_qualified_name})
+                for record in result:
+                    related_vars.append(dict(record))
+
+            return SubGraph(
+                center_node=center_node_data,
+                upstream_callers=upstream,
+                downstream_callees=downstream,
+                taint_flows=taint_data,
+                related_variables=related_vars,
+            )
+        except Exception as e:
+            self.logger.error(f"Failed to get subgraph for '{function_qualified_name}': {e}")
+            raise GraphQueryException(f"Failed to get subgraph: {e}")
 
     def execute_cypher(self, query: str, parameters: Optional[Dict[str, Any]] = None) -> List[Dict[str, Any]]:
         """执行原生 Cypher 查询"""
-        return super().execute_cypher(query, parameters)
+        self._ensure_connected()
+
+        try:
+            with self._driver.session() as session:
+                result = session.run(query, parameters or {})
+                return [dict(record) for record in result]
+        except Exception as e:
+            self.logger.error(f"Failed to execute Cypher query: {e}")
+            raise GraphQueryException(f"Failed to execute Cypher: {e}")
 
     # 子类必须实现的抽象方法
-    def _create_node_impl(self, label: str, unique_key: str, properties: Dict[str, Any]) -> bool:
+    def _create_node_impl(self, label, unique_key: str, properties: Dict[str, Any]) -> bool:
         """创建节点的具体实现"""
         self._ensure_connected()
 
+        label_str = label.value if hasattr(label, 'value') else str(label)
         query = f"""
-        MERGE (n:{label} {{{unique_key}: ${unique_key}}})
+        MERGE (n:{label_str} {{{unique_key}: ${unique_key}}})
         SET n += $properties
         RETURN n
         """
@@ -336,16 +490,20 @@ class Neo4jDatabase(BaseGraphDatabase):
             raise GraphQueryException(f"Failed to create node: {e}")
 
     def _create_relationship_impl(self,
-                                 start_label: str, start_key: str, start_value: str,
-                                 end_label: str, end_key: str, end_value: str,
-                                 rel_type: str, properties: Dict[str, Any]) -> bool:
+                                 start_label, start_key: str, start_value: str,
+                                 end_label, end_key: str, end_value: str,
+                                 rel_type, properties: Dict[str, Any]) -> bool:
         """创建关系的具体实现"""
         self._ensure_connected()
 
+        start_label_str = start_label.value if hasattr(start_label, 'value') else str(start_label)
+        end_label_str = end_label.value if hasattr(end_label, 'value') else str(end_label)
+        rel_type_str = rel_type.value if hasattr(rel_type, 'value') else str(rel_type)
+
         query = f"""
-        MATCH (a:{start_label} {{{start_key}: ${start_key}}})
-        MATCH (b:{end_label} {{{end_key}: ${end_key}}})
-        MERGE (a)-[r:{rel_type}]->(b)
+        MATCH (a:{start_label_str} {{{start_key}: ${start_key}}})
+        MATCH (b:{end_label_str} {{{end_key}: ${end_key}}})
+        MERGE (a)-[r:{rel_type_str}]->(b)
         SET r += $properties
         RETURN r
         """

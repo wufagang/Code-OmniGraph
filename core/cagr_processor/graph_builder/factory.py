@@ -61,7 +61,7 @@ class GraphDBFactory:
             except ImportError as e:
                 # 处理导入错误，提供更有用的错误信息
                 if "neo4j" in str(e):
-                    raise ConfigException(
+                    raise GraphConfigException(
                         "Neo4j driver is not installed. "
                         "Please install it with: pip install neo4j"
                     )
@@ -98,12 +98,14 @@ class GraphDBFactory:
                     **{k: v for k, v in config_dict.items() if k not in ["db_type", "neo4j_config"]}
                 )
             else:
-                raise ConfigException(f"Unsupported db_type: {db_type}")
+                raise GraphConfigException(f"Unsupported db_type: {db_type}")
 
             return cls.create(config)
 
+        except GraphConfigException:
+            raise
         except Exception as e:
-            raise ConfigException(f"Failed to create instance from config dict: {e}")
+            raise GraphConfigException(f"Failed to create instance from config dict: {e}")
 
     @classmethod
     def create_from_env(cls) -> GraphDatabase:

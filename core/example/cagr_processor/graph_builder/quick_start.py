@@ -8,17 +8,17 @@ import os
 import sys
 from datetime import datetime
 
-# 将项目根目录添加到 Python 路径
-project_root = os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(__file__))))
-sys.path.insert(0, project_root)
+# 将 core 目录添加到 Python 路径
+current_file = os.path.abspath(__file__)
+core_dir = os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(current_file))))
+sys.path.insert(0, core_dir)
 
-from core.cagr_processor.graph_builder.config import GraphDBConfig
-from core.cagr_processor.graph_builder.factory import GraphDBFactory
-from core.cagr_processor.graph_builder.models import (
+from cagr_processor.graph_builder.config import GraphDBConfig
+from cagr_processor.graph_builder.factory import GraphDBFactory
+from cagr_processor.graph_builder.models import (
     ProjectNode, FileNode, ClassNode, FunctionNode,
-    CallRelationship, TaintFlowRelationship, RiskLevel
+    TaintFlowRelationship, RiskLevel
 )
-from core.cagr_common.models import CodeLocation
 
 
 def quick_start_example():

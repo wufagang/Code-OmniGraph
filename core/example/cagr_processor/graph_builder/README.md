@@ -4,7 +4,7 @@
 
 ## 前提条件
 
-1. 安装 Neo4j 数据库（建议使用 Docker）
+1. **安装 Neo4j 数据库（建议使用 Docker）**
 ```bash
 docker run -d \
   --name neo4j \
@@ -13,18 +13,18 @@ docker run -d \
   neo4j:latest
 ```
 
-2. 安装 Python 依赖
+2. **安装 Python 依赖**
 ```bash
 pip install -r core/requirements.txt
 ```
 
-3. 配置环境变量
+3. **配置环境变量**（可选）
 ```bash
 cp config_example.env .env
 # 编辑 .env 文件，设置正确的 Neo4j 连接信息
 ```
 
-## 示例文件说明
+## 快速开始
 
 ### 1. quick_start.py
 最简洁的入门示例，展示基本用法：
@@ -37,9 +37,45 @@ cp config_example.env .env
 ```bash
 python quick_start.py
 ```
+### 2. 运行简化示例
+绕过模块导入问题的简化版本：
+```bash
+PYTHONPATH=/Users/wufagang/project/aiopen/code-omnigraph/core python direct_example.py
+```
 
-### 2. neo4j_usage_example.py
-完整的功能演示，展示所有 API 的用法：
+### 3. 使用运行脚本
+我们提供了便捷的运行脚本：
+```bash
+# 运行简化示例
+python run_example.py quick
+
+# 运行完整示例（需要修复导入问题）
+python run_example.py full
+```
+
+## 示例文件说明
+
+### 1. local_example.py ⭐（推荐）
+使用本地 Neo4j 配置的示例，最容易运行：
+- 硬编码本地 Neo4j 连接信息（localhost:7687）
+- 创建基本节点和关系
+- 演示查询操作
+- 适合初次体验
+
+### 2. direct_example.py
+绕过模块导入问题的简化版本：
+- 直接导入核心模块
+- 使用环境变量中的配置
+- 适合已配置好 Neo4j 环境的用户
+
+### 3. simple_example.py
+极简示例，展示最基本用法：
+- 最少的代码量
+- 清晰的操作步骤
+- 适合理解基本概念
+
+### 4. neo4j_usage_example.py
+完整的功能演示（需要修复导入问题）：
 - 所有节点类型的创建
 - 所有关系类型的创建
 - 各种查询操作
@@ -47,10 +83,49 @@ python quick_start.py
 - 高级 Cypher 查询
 - 安全分析（污点流）
 
-运行：
-```bash
-python neo4j_usage_example.py
-```
+## 常见问题
+
+### 模块导入错误
+如果遇到 `ModuleNotFoundError` 或 `No module named 'core'` 错误：
+
+1. **使用本地示例**（推荐）：
+   ```bash
+   python local_example.py
+   ```
+
+2. **设置正确的 Python 路径**：
+   ```bash
+   PYTHONPATH=/Users/wufagang/project/aiopen/code-omnigraph/core python direct_example.py
+   ```
+
+3. **从项目根目录运行**：
+   ```bash
+   cd /Users/wufagang/project/aiopen/code-omnigraph
+   PYTHONPATH=core python core/example/cagr_processor/graph_builder/local_example.py
+   ```
+
+### 连接失败
+如果连接 Neo4j 失败：
+
+1. **检查 Neo4j 是否运行**：
+   ```bash
+   docker ps  # 查看 Docker 容器状态
+   ```
+
+2. **验证连接信息**：
+   - URI: `bolt://localhost:7687`
+   - 用户名: `neo4j`
+   - 密码: `password`
+
+3. **查看 Neo4j 日志**：
+   ```bash
+   docker logs neo4j
+   ```
+
+### 权限问题
+如果遇到权限错误，确保：
+- Neo4j 用户有足够的权限
+- 数据库允许远程连接（如果是远程数据库）
 
 ## 核心概念
 
@@ -129,13 +204,6 @@ finally:
 - 代码语义搜索
 - 智能代码补全
 - 问题定位
-
-## 性能优化建议
-
-1. **批量操作**：使用批量 API 减少网络往返
-2. **索引优化**：为常用查询字段创建索引
-3. **查询优化**：合理使用查询深度限制
-4. **连接池**：复用数据库连接
 
 ## 故障排除
 

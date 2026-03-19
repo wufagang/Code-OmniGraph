@@ -56,3 +56,7 @@ class File(BaseModel):
     size: Optional[int] = None
     methods: List[Method] = Field(default_factory=list)
     classes: List[Class] = Field(default_factory=list)
+class CodeLocation(BaseModel):
+    file_path: str
+    line_number: Optional[int] = None
+    column_number: Optional[int] = None

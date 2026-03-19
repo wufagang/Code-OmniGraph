@@ -6,7 +6,6 @@ Code-OmniGraph Neo4j 简化示例
 
 import os
 import sys
-from datetime import datetime
 from pathlib import Path
 
 # 将 core 目录添加到 Python 路径
@@ -49,11 +48,8 @@ def main():
         # 创建项目
         project = ProjectNode(
             name="simple-demo",
-            description="简化演示项目",
             language="java",
-            version="1.0.0",
-            repository_path="/demo/path",
-            created_at=datetime.now()
+            version="1.0.0"
         )
         success = graph_db.create_project(project)
         print(f"   创建项目: {success}")
@@ -63,9 +59,7 @@ def main():
             path="com/example/SimpleService.java",
             name="SimpleService.java",
             language="java",
-            size=512,
-            last_modified=datetime.now(),
-            content_hash="simple123"
+            size=512
         )
         success = graph_db.create_file(file_node)
         print(f"   创建文件: {success}")
@@ -74,10 +68,7 @@ def main():
         class_node = ClassNode(
             qualified_name="com.example.SimpleService",
             name="SimpleService",
-            type="class",
-            modifiers=["public"],
-            line_number=1,
-            signature="public class SimpleService"
+            start_line=1
         )
         success = graph_db.create_class(class_node)
         print(f"   创建类: {success}")
@@ -88,9 +79,7 @@ def main():
             name="processData",
             signature="public String processData(String input)",
             return_type="String",
-            parameters=["String input"],
-            modifiers=["public"],
-            line_number=10
+            start_line=10
         )
         success = graph_db.create_function(function_node)
         print(f"   创建函数: {success}")

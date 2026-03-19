@@ -6,7 +6,6 @@ Code-OmniGraph Neo4j 直接示例
 
 import os
 import sys
-from datetime import datetime
 from pathlib import Path
 
 # 设置正确的 Python 路径
@@ -76,11 +75,8 @@ def main():
         # 创建项目
         project = ProjectNode(
             name="direct-demo",
-            description="直接演示项目",
             language="java",
-            version="1.0.0",
-            repository_path="/demo/path",
-            created_at=datetime.now()
+            version="1.0.0"
         )
         success = graph_db.create_project(project)
         print(f"   创建项目: {success}")
@@ -90,9 +86,7 @@ def main():
             path="com/example/DirectService.java",
             name="DirectService.java",
             language="java",
-            size=1024,
-            last_modified=datetime.now(),
-            content_hash="direct123"
+            size=1024
         )
         success = graph_db.create_file(file_node)
         print(f"   创建文件: {success}")
@@ -101,10 +95,7 @@ def main():
         class_node = ClassNode(
             qualified_name="com.example.DirectService",
             name="DirectService",
-            type="class",
-            modifiers=["public"],
-            line_number=1,
-            signature="public class DirectService"
+            start_line=1
         )
         success = graph_db.create_class(class_node)
         print(f"   创建类: {success}")
@@ -115,9 +106,7 @@ def main():
             name="processDirectly",
             signature="public String processDirectly(String input)",
             return_type="String",
-            parameters=["String input"],
-            modifiers=["public"],
-            line_number=10
+            start_line=10
         )
         success = graph_db.create_function(function_node)
         print(f"   创建函数: {success}")

@@ -6,7 +6,6 @@ Code-OmniGraph Neo4j 图数据库使用示例
 
 import os
 import sys
-from datetime import datetime
 from typing import List, Dict, Any, Optional
 
 # 将 core 目录添加到 Python 路径
@@ -21,7 +20,6 @@ from cagr_processor.graph_builder.models import (
     CallRelationship, TaintFlowRelationship, DataAccessRelationship,
     NodeLabel, RelType, RiskLevel
 )
-from cagr_common.models import CodeLocation
 
 
 def setup_neo4j_connection():
@@ -54,11 +52,8 @@ def example_create_nodes(graph_db):
     # 1. 创建项目节点
     project = ProjectNode(
         name="example-project",
-        description="示例项目",
         language="java",
-        version="1.0.0",
-        repository_path="/path/to/project",
-        created_at=datetime.now()
+        version="1.0.0"
     )
     success = graph_db.create_project(project)
     print(f"创建项目节点: {success}")
@@ -68,9 +63,7 @@ def example_create_nodes(graph_db):
         path="com/example/service/UserService.java",
         name="UserService.java",
         language="java",
-        size=1024,
-        last_modified=datetime.now(),
-        content_hash="abc123"
+        size=1024
     )
     success = graph_db.create_file(file_node)
     print(f"创建文件节点: {success}")
@@ -79,12 +72,8 @@ def example_create_nodes(graph_db):
     class_node = ClassNode(
         qualified_name="com.example.service.UserService",
         name="UserService",
-        type="class",
-        modifiers=["public"],
-        line_number=10,
-        column_number=0,
-        signature="public class UserService",
-        documentation="用户服务类"
+        start_line=10,
+        docstring="用户服务类"
     )
     success = graph_db.create_class(class_node)
     print(f"创建类节点: {success}")
@@ -95,11 +84,8 @@ def example_create_nodes(graph_db):
         name="getUserById",
         signature="public User getUserById(Long id)",
         return_type="User",
-        parameters=["Long id"],
-        modifiers=["public"],
-        line_number=25,
-        column_number=4,
-        documentation="根据ID获取用户信息"
+        start_line=25,
+        docstring="根据ID获取用户信息"
     )
     success = graph_db.create_function(function_node)
     print(f"创建函数节点: {success}")
@@ -108,11 +94,7 @@ def example_create_nodes(graph_db):
     variable_node = VariableNode(
         qualified_name="com.example.service.UserService.userRepository",
         name="userRepository",
-        type="UserRepository",
-        modifiers=["private"],
-        line_number=15,
-        column_number=4,
-        is_field=True
+        var_type="UserRepository"
     )
     success = graph_db.create_variable(variable_node)
     print(f"创建变量节点: {success}")
@@ -149,12 +131,7 @@ def example_create_relationships(graph_db):
     call_rel = CallRelationship(
         caller_qualified_name="com.example.service.UserService.getUserById",
         callee_qualified_name="com.example.repository.UserRepository.findById",
-        call_location=CodeLocation(
-            file_path="com/example/service/UserService.java",
-            line_number=30,
-            column_number=20
-        ),
-        call_type="method_call"
+        call_site_line=30
     )
     success = graph_db.create_calls_relationship(call_rel)
     print(f"创建函数调用关系: {success}")
@@ -163,12 +140,8 @@ def example_create_relationships(graph_db):
     data_access = DataAccessRelationship(
         function_qualified_name="com.example.service.UserService.getUserById",
         variable_qualified_name="com.example.service.UserService.userRepository",
-        access_type="read",
-        access_location=CodeLocation(
-            file_path="com/example/service/UserService.java",
-            line_number=30,
-            column_number=10
-        )
+        access_type="READS",
+        line=30
     )
     success = graph_db.create_data_access_relationship(data_access)
     print(f"创建数据访问关系: {success}")
@@ -177,9 +150,9 @@ def example_create_relationships(graph_db):
     taint_flow = TaintFlowRelationship(
         source_qualified_name="com.example.controller.UserController.getUserInput",
         sink_qualified_name="com.example.service.UserService.executeQuery",
-        risk_level=RiskLevel.HIGH,
-        taint_type="sql_injection",
-        flow_path=["parameter", "query_string"]
+        risk=RiskLevel.HIGH,
+        vulnerability_type="SQL_INJECTION",
+        taint_path=["parameter", "query_string"]
     )
     success = graph_db.create_taint_flow_relationship(taint_flow)
     print(f"创建污点流关系: {success}")

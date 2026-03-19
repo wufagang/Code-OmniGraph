@@ -42,7 +42,6 @@ def quick_start_example():
         # 创建项目
         project = ProjectNode(
             name="demo-app",
-            description="演示应用",
             language="java",
             version="1.0.0"
         )
@@ -59,8 +58,7 @@ def quick_start_example():
         # 创建类
         class_node = ClassNode(
             qualified_name="com.example.UserController",
-            name="UserController",
-            type="class"
+            name="UserController"
         )
         graph_db.create_class(class_node)
 
@@ -104,8 +102,8 @@ def quick_start_example():
         taint_flow = TaintFlowRelationship(
             source_qualified_name="com.example.UserController.getUserInput",
             sink_qualified_name="com.example.UserController.executeQuery",
-            risk_level=RiskLevel.HIGH,
-            taint_type="sql_injection"
+            risk=RiskLevel.HIGH,
+            vulnerability_type="SQL_INJECTION"
         )
         graph_db.create_taint_flow_relationship(taint_flow)
 

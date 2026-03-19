@@ -6,7 +6,6 @@ Code-OmniGraph Neo4j 本地示例
 
 import os
 import sys
-from datetime import datetime
 from pathlib import Path
 
 # 设置正确的 Python 路径
@@ -67,11 +66,8 @@ def main():
         # 创建项目
         project = ProjectNode(
             name="local-demo",
-            description="本地演示项目",
             language="java",
-            version="1.0.0",
-            repository_path="/demo/path",
-            created_at=datetime.now()
+            version="1.0.0"
         )
         success = graph_db.create_project(project)
         print(f"   创建项目: {success}")
@@ -81,9 +77,7 @@ def main():
             path="com/example/LocalService.java",
             name="LocalService.java",
             language="java",
-            size=1024,
-            last_modified=datetime.now(),
-            content_hash="local123"
+            size=1024
         )
         success = graph_db.create_file(file_node)
         print(f"   创建文件: {success}")
@@ -92,10 +86,7 @@ def main():
         class_node = ClassNode(
             qualified_name="com.example.LocalService",
             name="LocalService",
-            type="class",
-            modifiers=["public"],
-            line_number=1,
-            signature="public class LocalService"
+            start_line=1
         )
         success = graph_db.create_class(class_node)
         print(f"   创建类: {success}")
@@ -106,9 +97,7 @@ def main():
             name="processLocally",
             signature="public String processLocally(String input)",
             return_type="String",
-            parameters=["String input"],
-            modifiers=["public"],
-            line_number=10
+            start_line=10
         )
         success = graph_db.create_function(function_node)
         print(f"   创建函数: {success}")

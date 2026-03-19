@@ -6,7 +6,6 @@ Code-OmniGraph Neo4j 最终示例
 
 import os
 import sys
-from datetime import datetime
 from pathlib import Path
 
 # 设置正确的 Python 路径
@@ -20,7 +19,7 @@ sys.path.insert(0, str(project_root / "core"))
 # 手动导入所有需要的模块
 try:
     # 导入基础模块
-    from cagr_common.models import CodeLocation
+
     from cagr_common.exceptions import GraphConnectionException
 
     # 导入配置模块
@@ -105,11 +104,8 @@ def create_demo_graph():
         # 创建项目
         project = ProjectNode(
             name="demo-project",
-            description="演示项目",
             language="java",
-            version="1.0.0",
-            repository_path="/demo/path",
-            created_at=datetime.now()
+            version="1.0.0"
         )
         graph_db.create_project(project)
         print("✓ 创建项目节点")
@@ -127,9 +123,9 @@ def create_demo_graph():
 
         # 创建类
         classes = [
-            ClassNode(qualified_name="com.example.UserController", name="UserController", type="class"),
-            ClassNode(qualified_name="com.example.UserService", name="UserService", type="class"),
-            ClassNode(qualified_name="com.example.UserRepository", name="UserRepository", type="class")
+            ClassNode(qualified_name="com.example.UserController", name="UserController"),
+            ClassNode(qualified_name="com.example.UserService", name="UserService"),
+            ClassNode(qualified_name="com.example.UserRepository", name="UserRepository")
         ]
 
         for class_node in classes:
@@ -142,22 +138,19 @@ def create_demo_graph():
                 qualified_name="com.example.UserController.getUser",
                 name="getUser",
                 signature="public User getUser(Long id)",
-                return_type="User",
-                parameters=["Long id"]
+                return_type="User"
             ),
             FunctionNode(
                 qualified_name="com.example.UserService.findUser",
                 name="findUser",
                 signature="public User findUser(Long id)",
-                return_type="User",
-                parameters=["Long id"]
+                return_type="User"
             ),
             FunctionNode(
                 qualified_name="com.example.UserRepository.findById",
                 name="findById",
                 signature="public Optional<User> findById(Long id)",
-                return_type="Optional<User>",
-                parameters=["Long id"]
+                return_type="Optional<User>"
             )
         ]
 
@@ -183,16 +176,14 @@ def create_demo_graph():
         call1 = CallRelationship(
             caller_qualified_name="com.example.UserController.getUser",
             callee_qualified_name="com.example.UserService.findUser",
-            call_location=CodeLocation(file_path="com/example/UserController.java", line_number=20),
-            call_type="method_call"
+            call_site_line=20
         )
         graph_db.create_calls_relationship(call1)
 
         call2 = CallRelationship(
             caller_qualified_name="com.example.UserService.findUser",
             callee_qualified_name="com.example.UserRepository.findById",
-            call_location=CodeLocation(file_path="com/example/UserService.java", line_number=15),
-            call_type="method_call"
+            call_site_line=15
         )
         graph_db.create_calls_relationship(call2)
 
@@ -306,22 +297,19 @@ def advanced_security_analysis():
                 qualified_name="com.example.UserController.processUserInput",
                 name="processUserInput",
                 signature="public String processUserInput(String userInput)",
-                return_type="String",
-                parameters=["String userInput"]
+                return_type="String"
             ),
             FunctionNode(
                 qualified_name="com.example.UserService.buildQuery",
                 name="buildQuery",
                 signature="public String buildQuery(String condition)",
-                return_type="String",
-                parameters=["String condition"]
+                return_type="String"
             ),
             FunctionNode(
                 qualified_name="com.example.UserRepository.executeSql",
                 name="executeSql",
                 signature="public Result executeSql(String sql)",
-                return_type="Result",
-                parameters=["String sql"]
+                return_type="Result"
             )
         ]
 
@@ -332,9 +320,9 @@ def advanced_security_analysis():
         taint_flow = TaintFlowRelationship(
             source_qualified_name="com.example.UserController.processUserInput",
             sink_qualified_name="com.example.UserRepository.executeSql",
-            risk_level=RiskLevel.HIGH,
-            taint_type="sql_injection",
-            flow_path=["user_input", "query_builder", "sql_execution"]
+            risk=RiskLevel.HIGH,
+            vulnerability_type="SQL_INJECTION",
+            taint_path=["user_input", "query_builder", "sql_execution"]
         )
         graph_db.create_taint_flow_relationship(taint_flow)
 

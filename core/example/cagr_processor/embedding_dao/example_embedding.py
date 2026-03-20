@@ -27,8 +27,6 @@ if core_dir not in sys.path:
 from cagr_processor.embedding import (
     EmbeddingFactory,
     EmbeddingConfig,
-    OpenAIEmbeddingConfig,
-    OllamaEmbeddingConfig,
     EmbeddingModel,
 )
 from cagr_processor.embedding.base import BaseEmbeddingModel
@@ -78,18 +76,24 @@ SAMPLE_METHODS = [SAMPLE_METHOD_ORDER, SAMPLE_METHOD_EMAIL, SAMPLE_METHOD_USERS]
 def demo1_openai_single() -> EmbeddingModel:
     """
     演示要点：
-    1. 显式构建 EmbeddingConfig（provider="openai"），不依赖环境变量
-    2. 通过 EmbeddingFactory.create() 获取 EmbeddingModel 实例
-    3. 调用 model.embed() 将单段文本转换为浮点向量
-    4. 打印 provider、维度、向量前 8 个值
+    1. 从环境变量（core/.env）读取配置，一行代码创建模型
+    2. 调用 model.embed() 将单段文本转换为浮点向量
+    3. 打印 provider、维度、向量前 8 个值
+
+    core/.env 配置示例：
+        EMBEDDING_PROVIDER=openai
+        OPENAI_API_KEY=sk-...
+        OPENAI_EMBEDDING_MODEL=text-embedding-3-small
     """
     print("\n" + "=" * 60)
     print("Demo 1：OpenAI 单次 embed")
     print("=" * 60)
 
-    config = EmbeddingFactory.create_from_env()
-    # 2. 创建模型实例
-    model = EmbeddingFactory.create(config)
+    try:
+        model = EmbeddingFactory.create_from_env()
+    except EmbeddingConfigException as e:
+        print(f"[跳过] 配置错误：{e}")
+        return None
 
     print(f"  provider    : {model.getProvider()}")
     print(f"  模型维度    : {model.detectDimension()}  (detectDimension，本地读取配置，无 API 调用)")
@@ -140,69 +144,69 @@ def demo2_batch_embed(model: EmbeddingModel) -> None:
 
 
 # ---------------------------------------------------------------------------
-# Demo 3：从环境变量创建模型（create_from_env）
+# Demo 3：文本预处理（preprocessText）
 # ---------------------------------------------------------------------------
 
-def demo3_from_env() -> None:
+def demo3_preprocess(model: EmbeddingModel) -> None:
     """
     演示要点：
-    1. 不写任何硬编码配置，完全由环境变量驱动
-    2. EmbeddingFactory.create_from_env() 自动读取 EMBEDDING_PROVIDER 及对应的 key/host
-    3. 适合生产环境或 Docker 容器化部署场景
+    1. embed() 内部会自动调用 preprocessText，也可手动调用观察效果
+    2. 预处理去除多余空行、行尾空白，并按 max_tokens 截断
+    3. 适合在向量化前了解文本被如何清洗
     """
     print("\n" + "=" * 60)
-    print("Demo 3：从环境变量创建模型（create_from_env）")
+    print("Demo 3：文本预处理（preprocessText）")
     print("=" * 60)
 
-    # 显示当前生效的 provider 配置
-    provider = os.getenv("EMBEDDING_PROVIDER", "openai")
-    print(f"  EMBEDDING_PROVIDER = {provider}")
+    if model is None:
+        print("[跳过] Demo 1 未能创建模型。")
+        return
 
-    try:
-        model = EmbeddingFactory.create_from_env()
-        print(f"  成功创建模型 → provider: {model.getProvider()}, 维度: {model.detectDimension()}")
+    raw = """
+    public Order processOrder(OrderRequest request) {
 
-        query = "查找所有活跃用户的业务逻辑"
-        vector = model.embed(query)
-        print(f"\n  查询文本  : {query}")
-        print(f"  向量维度  : {len(vector)}")
-        print(f"  前 5 个值 : {[round(v, 6) for v in vector[:5]]}")
+        validateRequest(request);
 
-    except EmbeddingConfigException as e:
-        print(f"[跳过] 配置错误：{e}")
-    except Exception as e:
-        print(f"[跳过] 创建失败：{e}")
+
+        Order order = orderRepository.save(Order.from(request));   \t
+        return order;
+    }   \t
+    """
+
+    cleaned = model.preprocessText(raw)
+    print(f"  原始文本行数  : {len(raw.splitlines())}")
+    print(f"  清洗后行数    : {len(cleaned.splitlines())}")
+    print(f"\n  清洗后内容：\n{cleaned}")
 
 
 # ---------------------------------------------------------------------------
-# Demo 4：使用 Ollama 本地模型（无需 API Key）
+# Demo 4：切换到 Ollama 本地模型（无需 API Key）
 # ---------------------------------------------------------------------------
 
 def demo4_ollama() -> None:
     """
     演示要点：
-    1. Ollama 在本地运行，无需任何 API key
+    1. 只需在 core/.env 中切换 EMBEDDING_PROVIDER=ollama，代码零改动
     2. nomic-embed-text 输出 768 维向量（vs OpenAI 的 1536 维）
-    3. 展示切换 provider 只需更换 config，业务代码无需改动
-    4. 若 Ollama 未启动，打印友好提示而非直接抛出异常
+    3. 若 Ollama 未启动，打印友好提示而非抛出异常
+
+    core/.env 配置示例：
+        EMBEDDING_PROVIDER=ollama
+        OLLAMA_HOST=localhost
+        OLLAMA_PORT=11434
+        OLLAMA_EMBEDDING_MODEL=nomic-embed-text
     """
     print("\n" + "=" * 60)
     print("Demo 4：Ollama 本地模型（无需 API Key）")
     print("=" * 60)
 
-    config = EmbeddingConfig(
-        provider="ollama",
-        ollama_config=OllamaEmbeddingConfig(
-            host="localhost",
-            port=11434,
-            model="nomic-embed-text",   # 输出维度 768
-        ),
-    )
+    # 临时覆盖 provider 为 ollama，演示切换效果
+    os.environ["EMBEDDING_PROVIDER"] = "ollama"
 
     try:
-        model = EmbeddingFactory.create(config)
+        model = EmbeddingFactory.create_from_env()
         print(f"  provider    : {model.getProvider()}")
-        print(f"  模型维度    : {model.detectDimension()}  (nomic-embed-text)")
+        print(f"  模型维度    : {model.detectDimension()}")
 
         text = SAMPLE_METHOD_USERS
         print(f"\n  待向量化文本（前 80 字符）：\n  {text[:80].strip()} ...")
@@ -212,13 +216,16 @@ def demo4_ollama() -> None:
         print(f"  前 8 个值    : {[round(v, 6) for v in vector[:8]]}")
 
     except EmbeddingConnectionException as e:
-        print(f"[跳过] 无法连接 Ollama（localhost:11434）：{e}")
+        print(f"[跳过] 无法连接 Ollama：{e}")
         print("  请确认 Ollama 已启动：ollama serve")
         print("  并已拉取模型：ollama pull nomic-embed-text")
     except EmbeddingConfigException as e:
         print(f"[跳过] 配置错误：{e}")
     except Exception as e:
         print(f"[跳过] 创建失败（{type(e).__name__}）：{e}")
+    finally:
+        # 恢复原有 provider 设置
+        os.environ["EMBEDDING_PROVIDER"] = "openai"
 
 
 # ---------------------------------------------------------------------------
@@ -268,16 +275,8 @@ def demo5_custom_provider() -> None:
     EmbeddingFactory.register("hash", HashEmbedding)
     print(f"  已注册 provider: {EmbeddingFactory.get_supported_providers()}")
 
-    # 2. 构建配置（provider 字段匹配注册名即可）
-    #    EmbeddingConfig.validate() 只检查 provider 字段和对应 config 是否存在，
-    #    "hash" 是自定义 provider，直接绕过 validate，使用低层 API
-    config = EmbeddingConfig.__new__(EmbeddingConfig)
-    config.provider = "hash"
-    config.openai_config = None
-    config.gemini_config = None
-    config.ollama_config = None
-    config.batch_size = 100
-    config.enable_logging = False
+    # 2. 构建配置（直接构造 dataclass，不调用 validate，适用于自定义 provider）
+    config = EmbeddingConfig(provider="hash")
 
     # 3. 创建模型并 embed
     model = EmbeddingFactory.create(config)
@@ -313,8 +312,8 @@ if __name__ == "__main__":
 
     openai_model = demo1_openai_single()
     demo2_batch_embed(openai_model)
-    demo3_from_env()
-    demo4_ollama()
+    demo3_preprocess(openai_model)
+    # demo4_ollama()
     demo5_custom_provider()
 
     print("\n" + "=" * 60)

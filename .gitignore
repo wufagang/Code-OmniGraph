@@ -11,3 +11,5 @@ coverage/
 /venv/
 .idea/
 /core/.env
+/front/dist
+/front/node_modules
